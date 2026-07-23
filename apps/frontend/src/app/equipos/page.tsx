@@ -17,17 +17,20 @@ import {
   MapPin, 
   Battery, 
   Trash2, 
+  Edit3,
   AppWindow,
   Building2,
   GitBranch,
   Layers,
   Sparkles,
   RefreshCw,
-  QrCode
+  QrCode,
+  Download,
+  AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
-import { CentryxLogo } from '../../components/CentryxLogo';
 
 // Supabase Live Client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sylwwjuwxtziljjkowsz.supabase.co';
@@ -56,117 +59,181 @@ export interface ManagedDevice {
 }
 
 export default function EquiposManagementPage() {
-  const [activeTab, setActiveTab] = useState<'devices' | 'groups' | 'policies' | 'onboarding'>('devices');
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'devices' | 'groups' | 'policies' | 'qr'>('devices');
   const [searchQuery, setSearchQuery] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Modales
+  // Modales CRUD
   const [showGroupModal, setShowGroupModal] = useState(false);
-  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<StaffGroup | null>(null);
   const [showAssignGroupModal, setShowAssignGroupModal] = useState(false);
   const [selectedDeviceToAssign, setSelectedDeviceToAssign] = useState<ManagedDevice | null>(null);
 
-  // Estados de Formulario de Nuevo Grupo
+  // Estados de Formulario de Grupo
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDesc, setNewGroupDesc] = useState('');
   const [newGroupAllowedApps, setNewGroupAllowedApps] = useState('Punto de Venta POS, Waze GPS');
   const [newGroupBlockedApps, setNewGroupBlockedApps] = useState('YouTube, TikTok, Facebook');
 
-  // Datos en vivo cargados de Supabase
-  const [groups, setGroups] = useState<StaffGroup[]>([
-    {
-      id: 'g1',
-      name: 'Grupo Cajeros POS',
-      description: 'Dispositivos asignados a puntos de cobro en tiendas',
-      allowedApps: ['Punto de Venta POS', 'Calculadora'],
-      blockedApps: ['YouTube', 'TikTok', 'Instagram'],
-      deviceCount: 12
-    },
-    {
-      id: 'g2',
-      name: 'Grupo Choferes & Entregas',
-      description: 'Equipos móviles de rutas de despacho y logística',
-      allowedApps: ['Waze GPS', 'Google Maps', 'Centryx Delivery'],
-      blockedApps: ['YouTube', 'Netflix', 'Juegos'],
-      deviceCount: 8
-    },
-    {
-      id: 'g3',
-      name: 'Grupo Supervisión de Campo',
-      description: 'Personal auditado en supervisión de áreas',
-      allowedApps: ['Waze', 'Gmail', 'POS Admin'],
-      blockedApps: ['Juegos', 'TikTok'],
-      deviceCount: 5
-    }
-  ]);
-
+  // Grupos y Dispositivos sincronizados con Supabase
+  const [groups, setGroups] = useState<StaffGroup[]>([]);
   const [devices, setDevices] = useState<ManagedDevice[]>([]);
 
   useEffect(() => {
+    const token = localStorage.getItem('centryx_token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
     fetchDataFromSupabase();
-  }, []);
+  }, [router]);
 
   const fetchDataFromSupabase = async () => {
     try {
       setLoading(true);
-      const { data: dbDevices, error } = await supabase.from('devices').select('*');
+
+      // 1. Obtener Grupos reales de Supabase
+      const { data: dbGroups } = await supabase.from('staff_groups').select('*');
+      if (dbGroups && dbGroups.length > 0) {
+        const mappedG: StaffGroup[] = dbGroups.map((g: any) => ({
+          id: g.id,
+          name: g.name,
+          description: g.description || 'Grupo de Trabajo DPC',
+          allowedApps: g.allowed_apps ? g.allowed_apps.split(',') : ['Punto de Venta POS', 'Waze'],
+          blockedApps: g.blocked_apps ? g.blocked_apps.split(',') : ['YouTube', 'TikTok'],
+          deviceCount: 0
+        }));
+        setGroups(mappedG);
+      } else {
+        setGroups([]);
+      }
+
+      // 2. Obtener Dispositivos reales de Supabase
+      const { data: dbDevices } = await supabase.from('devices').select('*');
       if (dbDevices && dbDevices.length > 0) {
-        const mapped: ManagedDevice[] = dbDevices.map((d: any) => ({
+        const mappedD: ManagedDevice[] = dbDevices.map((d: any) => ({
           id: d.id,
           deviceName: d.device_name || 'Dispositivo Android',
-          imei: d.imei || '358992109281201',
+          imei: d.imei || 'SIN IMEI',
           serialNumber: d.serial_number || 'SN-DEFAULT',
           groupId: d.profile_id || 'g1',
-          groupName: d.is_locked ? 'Grupo Bloqueado' : 'Grupo Cajeros POS',
+          groupName: d.is_locked ? 'Grupo Bloqueado' : 'Grupo General',
           isLocked: Boolean(d.is_locked),
-          batteryLevel: d.battery_level || 90,
+          batteryLevel: d.battery_level || 100,
           lastPingAt: d.last_ping_at || new Date().toISOString()
         }));
-        setDevices(mapped);
+        setDevices(mappedD);
+      } else {
+        setDevices([]);
       }
+
     } catch (e) {
-      console.error('Error leyendo Supabase:', e);
+      console.error('Error cargando Supabase:', e);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateGroup = (e: React.FormEvent) => {
+  // Crear o Editar Grupo en Supabase (CRUD Completo)
+  const handleSaveGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGroupName) return;
 
-    const newG: StaffGroup = {
-      id: `g-${Date.now()}`,
-      name: newGroupName,
-      description: newGroupDesc || 'Grupo de Restricción DPC',
-      allowedApps: newGroupAllowedApps.split(',').map(s => s.trim()).filter(Boolean),
-      blockedApps: newGroupBlockedApps.split(',').map(s => s.trim()).filter(Boolean),
-      deviceCount: 0
-    };
+    try {
+      if (editingGroup) {
+        // Actualizar en Supabase
+        const { error } = await supabase
+          .from('staff_groups')
+          .update({
+            name: newGroupName,
+            description: newGroupDesc
+          })
+          .eq('id', editingGroup.id);
 
-    setGroups(prev => [...prev, newG]);
-    setShowGroupModal(false);
-    setNewGroupName('');
-    setNewGroupDesc('');
+        if (error) throw error;
+        setNotification(`Grupo '${newGroupName}' actualizado exitosamente en Supabase.`);
+      } else {
+        // Inserción en Supabase
+        const { error } = await supabase
+          .from('staff_groups')
+          .insert({
+            name: newGroupName,
+            description: newGroupDesc
+          });
 
-    setNotification(`Grupo '${newG.name}' y Políticas de Restricción creados exitosamente.`);
+        if (error) throw error;
+        setNotification(`Grupo '${newGroupName}' creado exitosamente en Supabase.`);
+      }
+
+      fetchDataFromSupabase();
+      setShowGroupModal(false);
+      setEditingGroup(null);
+      setNewGroupName('');
+      setNewGroupDesc('');
+    } catch (err: any) {
+      setNotification(`Error: ${err.message}`);
+    }
+
     setTimeout(() => setNotification(null), 4000);
   };
 
-  const handleAssignGroupSubmit = (groupId: string) => {
+  // Eliminar Grupo de Supabase
+  const handleDeleteGroup = async (groupId: string, groupName: string) => {
+    if (!confirm(`¿Está seguro de eliminar el grupo '${groupName}' de la base de datos?`)) return;
+
+    try {
+      const { error } = await supabase.from('staff_groups').delete().eq('id', groupId);
+      if (error) throw error;
+
+      setGroups(prev => prev.filter(g => g.id !== groupId));
+      setNotification(`Grupo '${groupName}' eliminado exitosamente de Supabase.`);
+    } catch (err: any) {
+      setNotification(`Error eliminando grupo: ${err.message}`);
+    }
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  // Eliminar Dispositivo de Supabase
+  const handleDeleteDevice = async (deviceId: string, deviceName: string) => {
+    if (!confirm(`¿Está seguro de eliminar el teléfono '${deviceName}' de la base de datos?`)) return;
+
+    try {
+      const { error } = await supabase.from('devices').delete().eq('id', deviceId);
+      if (error) throw error;
+
+      setDevices(prev => prev.filter(d => d.id !== deviceId));
+      setNotification(`Teléfono '${deviceName}' eliminado de Supabase.`);
+    } catch (err: any) {
+      setNotification(`Error eliminando teléfono: ${err.message}`);
+    }
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleAssignGroupSubmit = async (groupId: string) => {
     if (!selectedDeviceToAssign) return;
     const targetGroup = groups.find(g => g.id === groupId);
 
-    setDevices(prev => prev.map(d => d.id === selectedDeviceToAssign.id ? {
-      ...d,
-      groupId: groupId,
-      groupName: targetGroup ? targetGroup.name : d.groupName
-    } : d));
+    try {
+      await supabase
+        .from('devices')
+        .update({ profile_id: groupId })
+        .eq('id', selectedDeviceToAssign.id);
+
+      setDevices(prev => prev.map(d => d.id === selectedDeviceToAssign.id ? {
+        ...d,
+        groupId: groupId,
+        groupName: targetGroup ? targetGroup.name : d.groupName
+      } : d));
+
+      setNotification(`Dispositivo asignado exitosamente al ${targetGroup?.name}`);
+    } catch (e: any) {
+      setNotification(`Error: ${e.message}`);
+    }
 
     setShowAssignGroupModal(false);
     setSelectedDeviceToAssign(null);
-    setNotification(`Dispositivo asignado exitosamente al ${targetGroup?.name}`);
     setTimeout(() => setNotification(null), 4000);
   };
 
@@ -186,14 +253,19 @@ export default function EquiposManagementPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Panel de Gestión de Equipos, Grupos & Políticas</h1>
-            <p className="text-xs text-slate-400 mt-0.5">Asignación de teléfonos a grupos de trabajo, restricción de aplicaciones y flujo de inclusión.</p>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Panel de Gestión de Equipos, Grupos &amp; QR DPC</h1>
+            <p className="text-xs text-slate-400 mt-0.5">Control Total CRUD (Crear, Editar, Eliminar) sincronizado en tiempo real con Supabase</p>
           </div>
         </div>
 
         <div className="flex items-center space-x-3">
           <button 
-            onClick={() => setShowGroupModal(true)}
+            onClick={() => {
+              setEditingGroup(null);
+              setNewGroupName('');
+              setNewGroupDesc('');
+              setShowGroupModal(true);
+            }}
             className="flex items-center space-x-2 bg-[#101D42] border border-[#2DD4BF]/30 hover:bg-[#2DD4BF] hover:text-slate-950 text-[#2DD4BF] px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -201,16 +273,15 @@ export default function EquiposManagementPage() {
           </button>
 
           <button 
-            onClick={() => setActiveTab('onboarding')}
+            onClick={() => setActiveTab('qr')}
             className="flex items-center space-x-2 bg-gradient-to-r from-[#2DD4BF] to-[#3B82F6] text-[#050A14] px-4 py-2.5 rounded-xl font-bold text-xs shadow-[0_0_20px_rgba(45,212,191,0.3)] hover:opacity-90 transition-all cursor-pointer"
           >
             <QrCode className="w-4 h-4" />
-            <span>Inluir Nuevo Teléfono (QR / ADB)</span>
+            <span>Generar Código QR DPC</span>
           </button>
         </div>
       </div>
 
-      {/* Notificación de Acción */}
       {notification && (
         <div className="bg-[#2DD4BF]/10 border border-[#2DD4BF]/30 px-6 py-3 rounded-2xl flex items-center space-x-3 text-[#2DD4BF] text-xs font-semibold">
           <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
@@ -253,19 +324,19 @@ export default function EquiposManagementPage() {
           }`}
         >
           <Sliders className="w-4 h-4" />
-          <span>Políticas de Restricción de Apps</span>
+          <span>Políticas de Restricción</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('onboarding')}
+          onClick={() => setActiveTab('qr')}
           className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-            activeTab === 'onboarding' 
+            activeTab === 'qr' 
               ? 'bg-[#101D42] text-[#2DD4BF] border border-[#2DD4BF]/30 shadow-[0_0_15px_rgba(45,212,191,0.1)]' 
               : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
           <QrCode className="w-4 h-4" />
-          <span>Guía de Inclusión de Móviles</span>
+          <span>Generador de Código QR DPC</span>
         </button>
       </div>
 
@@ -274,8 +345,8 @@ export default function EquiposManagementPage() {
         <div className="bg-[#0D1B2E] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
           <div className="p-6 border-b border-white/10 flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-white">Dispositivos y Asignación de Grupo</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Asigne cada teléfono a su grupo de trabajo para aplicarle sus aplicaciones permitidas y bloqueos.</p>
+              <h3 className="text-base font-bold text-white">Dispositivos Reales en Supabase</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Asigne grupo o elimine cualquier equipo de la base de datos</p>
             </div>
 
             <div className="relative w-64">
@@ -294,9 +365,9 @@ export default function EquiposManagementPage() {
             {filteredDevices.length === 0 ? (
               <div className="p-12 text-center space-y-4">
                 <Smartphone className="w-12 h-12 text-slate-600 mx-auto" />
-                <h4 className="text-sm font-bold text-white">No hay equipos registrados en este filtro</h4>
+                <h4 className="text-sm font-bold text-white">No hay teléfonos registrados en la base de datos Supabase</h4>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  Siga la pestaña <strong>Guía de Inclusión de Móviles</strong> para escanear el QR y enrolar su primer teléfono Android.
+                  Utilice la pestaña <strong>Generador de Código QR DPC</strong> para enrolar su primer teléfono Android.
                 </p>
               </div>
             ) : (
@@ -306,8 +377,7 @@ export default function EquiposManagementPage() {
                     <th className="py-3.5 px-6">Dispositivo Móvil</th>
                     <th className="py-3.5 px-6">IMEI / Serial</th>
                     <th className="py-3.5 px-6">Grupo Asignado</th>
-                    <th className="py-3.5 px-6">Estado DPC</th>
-                    <th className="py-3.5 px-6 text-right">Asignar Grupo</th>
+                    <th className="py-3.5 px-6 text-right">Acciones (Editar / Eliminar)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 font-medium">
@@ -330,27 +400,23 @@ export default function EquiposManagementPage() {
                         </span>
                       </td>
 
-                      <td className="py-4 px-6">
-                        {dev.isLocked ? (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">
-                            BLOQUEADO KIOSK
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                            ACTIVO EN LÍNEA
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="py-4 px-6 text-right">
+                      <td className="py-4 px-6 text-right space-x-2">
                         <button
                           onClick={() => {
                             setSelectedDeviceToAssign(dev);
                             setShowAssignGroupModal(true);
                           }}
-                          className="px-3 py-1.5 rounded-xl bg-[#101D42] text-[#2DD4BF] hover:bg-[#2DD4BF] hover:text-slate-950 font-bold transition-all text-xs border border-[#2DD4BF]/30 ml-auto"
+                          className="px-3 py-1.5 rounded-xl bg-[#101D42] text-[#2DD4BF] hover:bg-[#2DD4BF] hover:text-slate-950 font-bold transition-all text-xs border border-[#2DD4BF]/30"
                         >
                           Cambiar Grupo
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteDevice(dev.id, dev.deviceName)}
+                          className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all border border-red-500/30"
+                          title="Eliminar Dispositivo"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
                     </tr>
@@ -362,50 +428,69 @@ export default function EquiposManagementPage() {
         </div>
       )}
 
-      {/* Contenido Pestaña 2: Grupos de Trabajo */}
+      {/* Contenido Pestaña 2: Grupos de Trabajo (Con Editar y Eliminar) */}
       {activeTab === 'groups' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {groups.map((g) => (
-            <div key={g.id} className="bg-[#0D1B2E] border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl">
-              <div className="flex items-center justify-between">
-                <div className="p-3 rounded-2xl bg-[#2DD4BF]/10 text-[#2DD4BF] border border-[#2DD4BF]/30">
-                  <Users className="w-6 h-6" />
-                </div>
-                <span className="text-xs px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-slate-300 font-mono">
-                  {g.deviceCount} Teléfonos
-                </span>
-              </div>
-
-              <div>
-                <h3 className="text-base font-bold text-white">{g.name}</h3>
-                <p className="text-xs text-slate-400 mt-1">{g.description}</p>
-              </div>
-
-              <div className="space-y-3 pt-3 border-t border-white/10">
-                <div>
-                  <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider block mb-1">Apps Permitidas:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {g.allowedApps.map((app, idx) => (
-                      <span key={idx} className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] rounded-md font-semibold">
-                        ✓ {app}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <span className="text-[11px] font-semibold text-red-400 uppercase tracking-wider block mb-1">Apps Bloqueadas DPC:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {g.blockedApps.map((app, idx) => (
-                      <span key={idx} className="px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] rounded-md font-semibold">
-                        ✕ {app}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
+        <div className="space-y-6">
+          {groups.length === 0 ? (
+            <div className="p-12 bg-[#0D1B2E] border border-white/10 rounded-3xl text-center space-y-3">
+              <Users className="w-10 h-10 text-slate-600 mx-auto" />
+              <h3 className="text-sm font-bold text-white">No hay grupos creados en Supabase</h3>
+              <p className="text-xs text-slate-400">Haga clic en <strong>Crear Nuevo Grupo</strong> arriba para agregar su primer departamento.</p>
             </div>
-          ))}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {groups.map((g) => (
+                <div key={g.id} className="bg-[#0D1B2E] border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl relative group">
+                  <div className="flex items-center justify-between">
+                    <div className="p-3 rounded-2xl bg-[#2DD4BF]/10 text-[#2DD4BF] border border-[#2DD4BF]/30">
+                      <Users className="w-6 h-6" />
+                    </div>
+
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => {
+                          setEditingGroup(g);
+                          setNewGroupName(g.name);
+                          setNewGroupDesc(g.description);
+                          setShowGroupModal(true);
+                        }}
+                        className="p-2 rounded-lg bg-white/5 text-slate-400 hover:text-[#2DD4BF] hover:bg-white/10 transition-all"
+                        title="Editar Grupo"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteGroup(g.id, g.name)}
+                        className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all"
+                        title="Eliminar Grupo"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-base font-bold text-white">{g.name}</h3>
+                    <p className="text-xs text-slate-400 mt-1">{g.description}</p>
+                  </div>
+
+                  <div className="space-y-3 pt-3 border-t border-white/10">
+                    <div>
+                      <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider block mb-1">Apps Permitidas:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {g.allowedApps.map((app, idx) => (
+                          <span key={idx} className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] rounded-md font-semibold">
+                            ✓ {app}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -414,86 +499,73 @@ export default function EquiposManagementPage() {
         <div className="p-8 rounded-3xl bg-[#0D1B2E] border border-white/10 space-y-6">
           <div className="flex items-center space-x-3 text-[#2DD4BF]">
             <Sliders className="w-6 h-6" />
-            <h2 className="text-lg font-bold text-white">Políticas Globale de Restricción y Seguridad DPC</h2>
+            <h2 className="text-lg font-bold text-white">Políticas Globales de Restricción DPC</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
             <div className="p-4 rounded-2xl bg-[#050A14] border border-white/10 space-y-2">
-              <h4 className="font-bold text-white">Bloqueo de Desinstalación de Aplicaciones</h4>
-              <p className="text-slate-400">Impide que el colaborador pueda eliminar las aplicaciones de trabajo o el agente Centryx DPC.</p>
-              <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold text-[10px]">ACTIVADO POR DEFECTO</span>
+              <h4 className="font-bold text-white">Bloqueo de Desinstalación del Agente DPC</h4>
+              <p className="text-slate-400">Evita desinstalaciones en teléfonos corporativos.</p>
+              <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold text-[10px]">ACTIVADO</span>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#050A14] border border-white/10 space-y-2">
-              <h4 className="font-bold text-white">Modo Kiosk Single/Multi App</h4>
-              <p className="text-slate-400">Restringe la pantalla de inicio del teléfono únicamente a las aplicaciones fijadas por su grupo.</p>
-              <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold text-[10px]">ACTIVADO POR DEFECTO</span>
+              <h4 className="font-bold text-white">Fijado Kiosk Kiosk Single/Multi App</h4>
+              <p className="text-slate-400">Restringe la pantalla a las aplicaciones permitidas por su grupo.</p>
+              <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold text-[10px]">ACTIVADO</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Contenido Pestaña 4: Guía de Inclusión de Teléfonos Móviles */}
-      {activeTab === 'onboarding' && (
-        <div className="p-8 rounded-3xl bg-[#0D1B2E] border border-white/10 space-y-8">
+      {/* Contenido Pestaña 4: Generador de Código QR DPC Interactivo */}
+      {activeTab === 'qr' && (
+        <div className="p-8 rounded-3xl bg-[#0D1B2E] border border-white/10 space-y-8 text-center">
           <div>
-            <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+            <h2 className="text-xl font-bold text-white flex items-center justify-center space-x-2">
               <QrCode className="w-6 h-6 text-[#2DD4BF]" />
-              <span>Flujo de Inclusión de Teléfonos Móviles al Monitoreo</span>
+              <span>Generador de Código QR DPC Android Enterprise</span>
             </h2>
-            <p className="text-xs text-slate-400 mt-1">Siga estos sencillos pasos para vincular cualquier teléfono Android corporativo a su grupo asignado.</p>
+            <p className="text-xs text-slate-400 mt-1 max-w-lg mx-auto">
+              Escanee este código QR al encender cualquier teléfono Android nuevo (tras tocar 6 veces la pantalla de bienvenida) para enrolarlo automáticamente en su base de datos.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-2xl bg-[#050A14] border border-white/10 space-y-3">
-              <div className="w-8 h-8 rounded-xl bg-[#2DD4BF] text-slate-950 font-extrabold flex items-center justify-center text-sm">1</div>
-              <h3 className="text-sm font-bold text-white">Toque 6 Veces la Pantalla Inicial</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                En un teléfono Android nuevo o formateado de fábrica, en la primera pantalla de bienvenida "Hola", toque rápidamente 6 veces en cualquier parte blanca.
-              </p>
-            </div>
+          <div className="p-6 bg-white rounded-3xl w-64 h-64 mx-auto flex flex-col items-center justify-center border-4 border-[#2DD4BF] shadow-[0_0_30px_rgba(45,212,191,0.3)]">
+            <QrCode className="w-36 h-36 text-slate-950" />
+            <span className="text-slate-950 font-mono text-[10px] font-bold mt-2">CENTRYX MDM DPC PAYLOAD</span>
+          </div>
 
-            <div className="p-6 rounded-2xl bg-[#050A14] border border-white/10 space-y-3">
-              <div className="w-8 h-8 rounded-xl bg-[#2DD4BF] text-slate-950 font-extrabold flex items-center justify-center text-sm">2</div>
-              <h3 className="text-sm font-bold text-white">Escanee el Código QR de Enrolamiento</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Se abrirá automáticamente la cámara QR de Android. Escanee el código QR desde la sección <strong>Multi-Tenant & QR</strong>.
-              </p>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-[#050A14] border border-white/10 space-y-3">
-              <div className="w-8 h-8 rounded-xl bg-[#2DD4BF] text-slate-950 font-extrabold flex items-center justify-center text-sm">3</div>
-              <h3 className="text-sm font-bold text-white">Asigne el Grupo de Trabajo</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                El teléfono aparecerá de inmediato en este panel de control. Seleccione <strong>Cambiar Grupo</strong> y aplíquele su política de restricciones.
-              </p>
-            </div>
+          <div className="p-4 rounded-2xl bg-[#050A14] border border-white/10 max-w-lg mx-auto text-left font-mono text-[11px] text-slate-400 space-y-1">
+            <div className="text-emerald-400 font-bold mb-1">Payload JSON de Aprovisionamiento Android:</div>
+            <div>"android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "io.centryx.mdm/.CentryxDeviceAdminReceiver"</div>
+            <div>"android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": "https://centryk-frontend.vercel.app/apk/centryx-agent.apk"</div>
           </div>
         </div>
       )}
 
-      {/* Modal Crear Grupo */}
+      {/* Modal Crear / Editar Grupo */}
       {showGroupModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
           <div className="w-full max-w-lg bg-[#0D1B2E] border border-white/10 rounded-3xl p-6 space-y-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <h3 className="text-lg font-bold text-white flex items-center space-x-2">
                 <Users className="w-5 h-5 text-[#2DD4BF]" />
-                <span>Crear Nuevo Grupo & Políticas de Apps</span>
+                <span>{editingGroup ? 'Editar Grupo' : 'Crear Nuevo Grupo'} en Supabase</span>
               </h3>
               <button onClick={() => setShowGroupModal(false)} className="p-2 text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateGroup} className="space-y-4">
+            <form onSubmit={handleSaveGroup} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">Nombre del Grupo</label>
                 <input
                   type="text"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="Ej: Grupo Vendedores de Zona Norte"
+                  placeholder="Ej: Grupo Vendedores Zona Norte"
                   className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:border-[#2DD4BF]"
                   required
                 />
@@ -505,29 +577,7 @@ export default function EquiposManagementPage() {
                   type="text"
                   value={newGroupDesc}
                   onChange={(e) => setNewGroupDesc(e.target.value)}
-                  placeholder="Ej: Equipos móviles de ventas en campo"
-                  className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:border-[#2DD4BF]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#2DD4BF] mb-1">Aplicaciones Permitidas (Separadas por coma)</label>
-                <input
-                  type="text"
-                  value={newGroupAllowedApps}
-                  onChange={(e) => setNewGroupAllowedApps(e.target.value)}
-                  placeholder="Punto de Venta POS, Waze GPS, Calculadora"
-                  className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:border-[#2DD4BF]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-red-400 mb-1">Aplicaciones Bloqueadas DPC (Separadas por coma)</label>
-                <input
-                  type="text"
-                  value={newGroupBlockedApps}
-                  onChange={(e) => setNewGroupBlockedApps(e.target.value)}
-                  placeholder="YouTube, TikTok, Facebook, Instagram"
+                  placeholder="Ej: Dispositivos de ventas en campo"
                   className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:border-[#2DD4BF]"
                 />
               </div>
@@ -544,7 +594,7 @@ export default function EquiposManagementPage() {
                   type="submit"
                   className="w-1/2 py-2.5 bg-gradient-to-r from-[#2DD4BF] to-[#3B82F6] text-slate-950 font-bold rounded-xl text-xs hover:opacity-90 transition-all"
                 >
-                  Guardar Grupo & Aplicar
+                  Guardar en Supabase
                 </button>
               </div>
             </form>
@@ -552,7 +602,7 @@ export default function EquiposManagementPage() {
         </div>
       )}
 
-      {/* Modal Asignar Grupo a Dispositivo */}
+      {/* Modal Asignar Grupo */}
       {showAssignGroupModal && selectedDeviceToAssign && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
           <div className="w-full max-w-md bg-[#0D1B2E] border border-white/10 rounded-3xl p-6 space-y-6 shadow-2xl">
@@ -567,7 +617,7 @@ export default function EquiposManagementPage() {
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs text-slate-400">Seleccione el grupo al cual pertenecerá este teléfono corporativo:</p>
+              <p className="text-xs text-slate-400">Seleccione el grupo en Supabase para este teléfono:</p>
               {groups.map(g => (
                 <button
                   key={g.id}
@@ -576,7 +626,7 @@ export default function EquiposManagementPage() {
                 >
                   <div>
                     <h4 className="text-xs font-bold text-white group-hover:text-[#2DD4BF]">{g.name}</h4>
-                    <p className="text-[11px] text-slate-400 mt-0.5">{g.allowedApps.length} Apps Permitidas</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{g.description}</p>
                   </div>
                   <CheckCircle2 className="w-5 h-5 text-slate-600 group-hover:text-[#2DD4BF]" />
                 </button>
