@@ -7,7 +7,6 @@
     "apps/backend"
   ],
   "scripts": {
-    "build": "npm run build --prefix apps/frontend",
-    "dev": "npm run dev --prefix apps/frontend"
+    "build": "npm run build --workspace=apps/frontend"
   }
 }
