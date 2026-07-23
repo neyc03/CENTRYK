@@ -1,0 +1,13 @@
+{
+  "name": "centryx-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend"
+  ],
+  "scripts": {
+    "build": "npm run build --prefix apps/frontend",
+    "dev": "npm run dev --prefix apps/frontend"
+  }
+}
