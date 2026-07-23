@@ -19,7 +19,7 @@ import {
   Award
 } from 'lucide-react';
 import Link from 'next/link';
-
+import { CentryxLogo } from '../components/CentryxLogo';
 
 export default function DashboardPage() {
   const [selectedCompany, setSelectedCompany] = useState('Invernandez Group');
@@ -39,16 +39,11 @@ export default function DashboardPage() {
       
       {/* Sidebar Oscuro (Estilo SOC 2026) */}
       <aside className="w-64 bg-[#0A1525] border-r border-white/10 flex flex-col">
-        {/* Brand Header */}
-        <div className="p-6 border-b border-white/10 flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2DD4BF] to-[#3B82F6] flex items-center justify-center shadow-[0_0_20px_rgba(45,212,191,0.3)]">
-            <ShieldCheck className="w-6 h-6 text-[#050A14]" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-wider text-white">CENTRYX</h1>
-            <p className="text-xs text-[#2DD4BF] font-mono">ENTERPRISE MDM v1.0</p>
-          </div>
+        {/* Brand Header con Nuevo Logo Modernizado */}
+        <div className="p-6 border-b border-white/10 flex items-center justify-between">
+          <CentryxLogo size="md" />
         </div>
+iv>
 
         {/* Navigation Menu */}
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
