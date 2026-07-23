@@ -28,7 +28,7 @@ import { createClient } from '@supabase/supabase-js';
 import { CentryxLogo } from '../components/CentryxLogo';
 import { DeviceManagementModal, Device } from '../components/DeviceManagementModal';
 
-// Inicialización del Cliente Supabase Oficial
+// Inicialización del Cliente Servidor Oficial
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sylwwjuwxtziljjkowsz.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHd3anV3eHR6aWxqamtvd3N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDgxMjk0NSwiZXhwIjoyMTAwMzg4OTQ1fQ.16CCyu_5JhbsMUEhQh78_Pzm_649LJb-DgasnUlqDwU';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -43,13 +43,13 @@ export default function DashboardPage() {
   const [loadingDb, setLoadingDb] = useState<boolean>(true);
   const [dbError, setDbError] = useState<string | null>(null);
 
-  // Lista de Dispositivos (100% CERO MOCK DATA - Solo consulta directa a Supabase)
+  // Lista de Dispositivos (100% CERO MOCK DATA - Solo consulta directa al Servidor Corporativo)
   const [devices, setDevices] = useState<Device[]>([]);
 
-  // Guard de Autenticación Estricta & Consulta en Vivo a Supabase
+  // Guard de Autenticación Estricta por Sesión (sessionStorage)
   useEffect(() => {
-    const token = localStorage.getItem('centryx_token');
-    const user = localStorage.getItem('centryx_user');
+    const token = sessionStorage.getItem('centryx_token');
+    const user = sessionStorage.getItem('centryx_user');
 
     if (!token) {
       router.push('/login');
@@ -57,15 +57,15 @@ export default function DashboardPage() {
     }
 
     if (user) setCurrentUser(user);
-    fetchLiveDevicesFromSupabase();
+    fetchLiveDevicesFromCloud();
   }, [router]);
 
-  const fetchLiveDevicesFromSupabase = async () => {
+  const fetchLiveDevicesFromCloud = async () => {
     try {
       setLoadingDb(true);
       setDbError(null);
 
-      // Consulta directa SQL en la base de datos Supabase
+      // Consulta directa al servidor de plataforma
       const { data, error } = await supabase.from('devices').select('*');
 
       if (error) {
@@ -88,7 +88,7 @@ export default function DashboardPage() {
         setDevices(mapped);
       }
     } catch (err: any) {
-      setDbError(err.message || 'Error de conexión con Supabase');
+      setDbError(err.message || 'Error de conexión con el servidor corporativo');
       setDevices([]);
     } finally {
       setLoadingDb(false);
@@ -123,7 +123,7 @@ export default function DashboardPage() {
         .update({ is_locked: updatedDevice.locked })
         .eq('id', updatedDevice.id);
     } catch (e) {
-      console.error('Error actualizando Supabase:', e);
+      console.error('Error actualizando servidor corporativo:', e);
     }
   };
 
@@ -146,7 +146,7 @@ export default function DashboardPage() {
 
           <Link href="/mapa" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
             <MapPin className="w-5 h-5 text-[#3B82F6]" />
-            <span>Mapa & Tracking GPS</span>
+            <span>Mapa &amp; Tracking GPS</span>
           </Link>
 
           <Link href="/ranking" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
@@ -163,7 +163,7 @@ export default function DashboardPage() {
 
           <Link href="/equipos" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
             <Smartphone className="w-5 h-5 text-[#2DD4BF]" />
-            <span>Gestión de Equipos & Grupos</span>
+            <span>Gestión de Equipos &amp; Grupos</span>
           </Link>
 
           <Link href="/usuarios" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
@@ -173,7 +173,7 @@ export default function DashboardPage() {
 
           <Link href="/estructura" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
             <Building2 className="w-5 h-5 text-[#10B981]" />
-            <span>Multi-Tenant & QR</span>
+            <span>Multi-Tenant &amp; QR</span>
           </Link>
 
           <Link href="/reportes" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
@@ -182,10 +182,10 @@ export default function DashboardPage() {
           </Link>
         </nav>
 
-        {/* Status de Base de Datos Supabase */}
+        {/* Status de Conexión Corporativa */}
         <div className="p-3 mx-4 mb-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center space-x-2 text-emerald-400 text-xs">
           <Database className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">Supabase Real Live BD</span>
+          <span className="truncate">Centryx Enterprise Cloud</span>
         </div>
 
         <div className="p-4 border-t border-white/10 bg-[#050A14]/50 flex items-center justify-between">
@@ -213,7 +213,7 @@ export default function DashboardPage() {
             <h1 className="text-lg font-bold text-white tracking-wide">Centro de Monitoreo en Tiempo Real</h1>
             <span className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Supabase Cloud PostgreSQL Activo</span>
+              <span>Centryx Enterprise Core Activo</span>
             </span>
           </div>
 
@@ -230,9 +230,9 @@ export default function DashboardPage() {
             </div>
 
             <button
-              onClick={fetchLiveDevicesFromSupabase}
+              onClick={fetchLiveDevicesFromCloud}
               className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-all"
-              title="Refrescar datos desde Supabase"
+              title="Refrescar datos del servidor"
             >
               <RefreshCw className={`w-4 h-4 ${loadingDb ? 'animate-spin' : ''}`} />
             </button>
@@ -248,7 +248,7 @@ export default function DashboardPage() {
                 <Smartphone className="w-5 h-5 text-[#3B82F6]" />
               </div>
               <div className="mt-3 text-2xl font-extrabold text-white font-mono">{devices.length}</div>
-              <div className="mt-1 text-[11px] text-emerald-400">Conectado a Supabase</div>
+              <div className="mt-1 text-[11px] text-emerald-400 font-medium">Conectado a Servidor</div>
             </div>
 
             <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-5">
@@ -289,12 +289,12 @@ export default function DashboardPage() {
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center space-x-2">
-                  <span>Equipos Registrados en Supabase Cloud</span>
+                  <span>Equipos Registrados en Plataforma Centryx</span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-[#2DD4BF]/10 text-[#2DD4BF] border border-[#2DD4BF]/20 font-mono">
                     {filteredDevices.length} registrados
                   </span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Sincronizado directamente con su base de datos PostgreSQL</p>
+                <p className="text-xs text-slate-400 mt-0.5">Sincronizado directamente con el servidor corporativo de telemetría</p>
               </div>
             </div>
 
@@ -317,9 +317,9 @@ export default function DashboardPage() {
                           <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
                             <Database className="w-8 h-8" />
                           </div>
-                          <div className="text-base font-bold text-white">Base de datos Supabase conectada y en espera de equipos reales</div>
+                          <div className="text-base font-bold text-white">Servidor Corporativo Centryx conectado y en espera de equipos reales</div>
                           <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-                            No hay dispositivos en la tabla <code className="text-[#2DD4BF]">devices</code> de Supabase. Instale la APK en su teléfono o escanee el Código QR para enrolar su primer equipo real.
+                            No hay dispositivos vinculados al servidor. Instale la APK en su teléfono o escanee el Código QR para enrolar su primer equipo real.
                           </p>
                           <Link href="/equipos" className="mt-3 px-5 py-2.5 bg-gradient-to-r from-[#2DD4BF] to-[#3B82F6] text-slate-950 text-xs font-bold rounded-xl shadow-lg hover:opacity-90 transition-all">
                             Ir a Módulo de Equipos &amp; Código QR
