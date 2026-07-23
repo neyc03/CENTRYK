@@ -96,6 +96,8 @@ export default function DashboardPage() {
   };
 
   const handleLogout = () => {
+    sessionStorage.removeItem('centryx_token');
+    sessionStorage.removeItem('centryx_user');
     localStorage.removeItem('centryx_token');
     localStorage.removeItem('centryx_user');
     router.push('/login');

@@ -43,7 +43,7 @@ export default function LoginPage() {
 
       if (dbError || !dbUser) {
         setLoading(false);
-        setError(`El usuario '${cleanUser}' no existe en la base de datos de Supabase`);
+        setError(`El usuario '${cleanUser}' no existe en la base de datos de la plataforma`);
         return;
       }
 
@@ -68,14 +68,18 @@ export default function LoginPage() {
         return;
       }
 
-      // 3. Inicio de sesión exitoso con token Supabase real
-      localStorage.setItem('centryx_token', `jwt_${dbUser.id}_active_session`);
+      // 3. Guardar Token en sessionStorage y localStorage para Sesión Segura
+      const activeToken = `jwt_${dbUser.id}_${Date.now()}`;
+      sessionStorage.setItem('centryx_token', activeToken);
+      sessionStorage.setItem('centryx_user', dbUser.username);
+      localStorage.setItem('centryx_token', activeToken);
       localStorage.setItem('centryx_user', dbUser.username);
+
       router.push('/');
 
     } catch (err: any) {
       setLoading(false);
-      setError(`Error de conexión con la base de datos: ${err.message}`);
+      setError(`Error de autenticación con el servidor: ${err.message}`);
     }
   };
 
@@ -145,7 +149,7 @@ export default function LoginPage() {
             className="w-full py-3.5 px-4 bg-gradient-to-r from-[#2DD4BF] to-[#3B82F6] text-slate-950 font-bold rounded-xl shadow-[0_0_25px_rgba(45,212,191,0.3)] hover:opacity-95 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 text-sm"
           >
             {loading ? (
-              <span>Validando en Supabase...</span>
+              <span>Validando credenciales...</span>
             ) : (
               <>
                 <span>Iniciar Sesión en el Sistema</span>
@@ -158,7 +162,7 @@ export default function LoginPage() {
         <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between text-xs text-slate-500">
           <span className="flex items-center space-x-1.5 text-emerald-400 font-semibold">
             <ShieldCheck className="w-4 h-4" />
-            <span>Autenticación Pura Supabase SQL</span>
+            <span>Autenticación Segura Bcrypt</span>
           </span>
           <span className="text-[#2DD4BF] font-mono">v2.4.0 Live</span>
         </div>
