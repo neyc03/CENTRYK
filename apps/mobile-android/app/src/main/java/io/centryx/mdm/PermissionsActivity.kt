@@ -1,17 +1,20 @@
 package io.centryx.mdm
 
 import android.Manifest
+import android.app.AlertDialog
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -143,7 +146,6 @@ class PermissionsActivity : AppCompatActivity() {
 
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
-                    btnCompleteEnrollment.isEnabled = true
 
                     if (response.isSuccessful || response.code == 201 || response.code == 200) {
                         try {
@@ -157,13 +159,20 @@ class PermissionsActivity : AppCompatActivity() {
                         startService(Intent(this@PermissionsActivity, UsageStatsCollectorService::class.java))
                         startService(Intent(this@PermissionsActivity, LocationTrackerService::class.java))
 
-                        tvStatus.text = "¡DISPOSITIVO REGISTRADO EXITOSAMENTE!\n\nModelo: $deviceName\nEstado: Conectado a la Red Corporativa Centryx"
+                        tvStatus.text = "¡DISPOSITIVO REGISTRADO EXITOSAMENTE!\n\nModelo: $deviceName\nEstado: Conectado a la Red Corporativa Centryx\nProtección Anti-Desinstalación: ACTIVA"
                         Toast.makeText(this@PermissionsActivity, "Dispositivo enrolado exitosamente", Toast.LENGTH_LONG).show()
 
-                        btnCompleteEnrollment.visibility = View.GONE
                         btnGrantUsageStats.visibility = View.GONE
                         btnGrantDeviceAdmin.visibility = View.GONE
+                        
+                        // Configurar botón para Desinstalación Autorizada por Clave Máster
+                        btnCompleteEnrollment.text = "🔒 Desinstalar / Liberar Agente (Requiere Clave Máster)"
+                        btnCompleteEnrollment.isEnabled = true
+                        btnCompleteEnrollment.setOnClickListener {
+                            showMasterPasswordUninstallDialog()
+                        }
                     } else {
+                        btnCompleteEnrollment.isEnabled = true
                         tvStatus.text = "Error de sincronización (${response.code}). Reintentando conexión..."
                         Toast.makeText(this@PermissionsActivity, "Error de registro: HTTP ${response.code}", Toast.LENGTH_SHORT).show()
                     }
@@ -176,5 +185,45 @@ class PermissionsActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    // Modal de Desinstalación Autorizada con Clave Máster Administrador
+    private fun showMasterPasswordUninstallDialog() {
+        val input = EditText(this).apply {
+            hint = "Ingrese Clave Máster Administrador (ej: 100562391)"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("🔒 Autorizar Desinstalación del Agente DPC")
+            .setMessage("Ingrese su contraseña de Administrador Máster para desbloquear y remover la supervisión corporativa de este teléfono.")
+            .setView(input)
+            .setPositiveButton("Desbloquear & Desinstalar") { dialog, _ ->
+                val pass = input.text.toString().trim()
+                if (pass == "100562391") {
+                    try {
+                        if (devicePolicyManager.isAdminActive(compName)) {
+                            devicePolicyManager.setUninstallBlocked(compName, packageName, false)
+                            devicePolicyManager.removeActiveAdmin(compName)
+                        }
+                        Toast.makeText(this, "Protección desbloqueada exitosamente. Procediendo a desinstalar...", Toast.LENGTH_LONG).show()
+                        
+                        val uninstallIntent = Intent(Intent.ACTION_DELETE).apply {
+                            data = Uri.parse("package:$packageName")
+                        }
+                        startActivity(uninstallIntent)
+                        finish()
+                    } catch (e: Exception) {
+                        Toast.makeText(this, "Error desbloqueando: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                } else {
+                    Toast.makeText(this, "Contraseña Máster Incorrecta. Desinstalación Denegada.", Toast.LENGTH_LONG).show()
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancelar") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
     }
 }
