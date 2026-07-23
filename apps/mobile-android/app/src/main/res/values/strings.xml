@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Centryx MDM</string>
+    <string name="device_admin_label">Centryx Device Owner Controller</string>
+    <string name="device_admin_description">Administrador corporativo para monitoreo de productividad y control remoto de seguridad Centryx.</string>
+</resources>
