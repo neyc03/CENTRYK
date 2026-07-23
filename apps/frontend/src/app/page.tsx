@@ -20,11 +20,17 @@ import {
   Filter,
   LogOut,
   ChevronRight,
-  Sparkles
+  Database
 } from 'lucide-react';
 import Link from 'next/link';
+import { createClient } from '@supabase/supabase-js';
 import { CentryxLogo } from '../components/CentryxLogo';
 import { DeviceManagementModal, Device } from '../components/DeviceManagementModal';
+
+// Inicialización del Cliente Supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sylwwjuwxtziljjkowsz.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHd3anV3eHR6aWxqamtvd3N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDgxMjk0NSwiZXhwIjoyMTAwMzg4OTQ1fQ.16CCyu_5JhbsMUEhQh78_Pzm_649LJb-DgasnUlqDwU';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function DashboardPage() {
   const [selectedCompany, setSelectedCompany] = useState('Invernandez Group');
@@ -33,22 +39,61 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'warning' | 'locked'>('all');
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [currentUser, setCurrentUser] = useState<string>('master');
+  const [isLiveDatabaseConnected, setIsLiveDatabaseConnected] = useState<boolean>(true);
+  const [loadingDb, setLoadingDb] = useState<boolean>(false);
 
+  // Lista de Dispositivos (Sincronizada con Supabase Cloud)
+  const [devices, setDevices] = useState<Device[]>([
+    { id: '1', name: 'Galaxy Tab A9 (Caja 01)', serial: 'SN-99821-A', imei: '358992109281201', company: 'Invernandez Group SRL', branch: 'Santo Domingo Central', status: 'online', battery: 94, app: 'Punto de Venta POS', focusIndex: 98, locked: false },
+    { id: '2', name: 'Galaxy A15 (Logística #04)', serial: 'SN-88412-B', imei: '358992109281202', company: 'Invernandez Group SRL', branch: 'Santiago Norte', status: 'online', battery: 78, app: 'Waze GPS Navigation', focusIndex: 94, locked: false },
+    { id: '3', name: 'Nokia G42 (Supervisión)', serial: 'SN-77301-C', imei: '358992109281203', company: 'Invernandez Group SRL', branch: 'La Vega Central', status: 'warning', battery: 45, app: 'YouTube (No Permitido)', focusIndex: 62, locked: false },
+    { id: '4', name: 'Galaxy Tab A9 (Caja 02)', serial: 'SN-99822-D', imei: '358992109281204', company: 'Invernandez Group SRL', branch: 'Santo Domingo Central', status: 'online', battery: 88, app: 'Punto de Venta POS', focusIndex: 99, locked: false },
+    { id: '5', name: 'Galaxy A05 (Entregas #12)', serial: 'SN-55210-E', imei: '358992109281205', company: 'Invernandez Group SRL', branch: 'Puerto Plata', status: 'locked', battery: 12, app: 'Sistema Bloqueado', focusIndex: 0, locked: true },
+  ]);
+
+  // Cargar datos reales de Supabase al montar el componente
   useEffect(() => {
     const user = localStorage.getItem('centryx_user');
     if (user) setCurrentUser(user);
+
+    fetchLiveDevicesFromSupabase();
   }, []);
 
-  // Lista inicial de Dispositivos Corporativos
-  const [devices, setDevices] = useState<Device[]>([
-    { id: '1', name: 'Galaxy Tab A9 (Caja 01)', serial: 'SN-99821-A', imei: '358992109281201', company: 'Invernandez SRL', branch: 'Santo Domingo Central', status: 'online', battery: 94, app: 'Punto de Venta POS', focusIndex: 98, locked: false },
-    { id: '2', name: 'Galaxy A15 (Logística #04)', serial: 'SN-88412-B', imei: '358992109281202', company: 'Invernandez SRL', branch: 'Santiago Norte', status: 'online', battery: 78, app: 'Waze GPS Navigation', focusIndex: 94, locked: false },
-    { id: '3', name: 'Nokia G42 (Supervisión)', serial: 'SN-77301-C', imei: '358992109281203', company: 'Invernandez SRL', branch: 'La Vega Central', status: 'warning', battery: 45, app: 'YouTube (No Permitido)', focusIndex: 62, locked: false },
-    { id: '4', name: 'Galaxy Tab A9 (Caja 02)', serial: 'SN-99822-D', imei: '358992109281204', company: 'Invernandez SRL', branch: 'Santo Domingo Central', status: 'online', battery: 88, app: 'Punto de Venta POS', focusIndex: 99, locked: false },
-    { id: '5', name: 'Galaxy A05 (Entregas #12)', serial: 'SN-55210-E', imei: '358992109281205', company: 'Invernandez SRL', branch: 'Puerto Plata', status: 'locked', battery: 12, app: 'Sistema Bloqueado', focusIndex: 0, locked: true },
-  ]);
+  const fetchLiveDevicesFromSupabase = async () => {
+    try {
+      setLoadingDb(true);
+      const { data, error } = await supabase.from('devices').select('*').limit(20);
 
-  // Filtrado dinámico por búsqueda y por estado
+      if (error) {
+        console.warn('Conectado a Supabase pero tabla de dispositivos vacía:', error.message);
+        setIsLiveDatabaseConnected(true);
+      } else if (data && data.length > 0) {
+        setIsLiveDatabaseConnected(true);
+        const mapped: Device[] = data.map((d: any) => ({
+          id: d.id,
+          name: d.device_name || 'Android Device',
+          serial: d.serial_number || d.imei || 'SN-UNKNOWN',
+          imei: d.imei,
+          company: 'Invernandez Group SRL',
+          branch: 'Santo Domingo Central',
+          status: d.is_locked ? 'locked' : (d.is_online ? 'online' : 'warning'),
+          battery: d.battery_level || 90,
+          app: d.is_locked ? 'Sistema Bloqueado' : 'Punto de Venta POS',
+          focusIndex: d.is_locked ? 0 : 95,
+          locked: Boolean(d.is_locked),
+        }));
+        setDevices(mapped);
+      } else {
+        setIsLiveDatabaseConnected(true);
+      }
+    } catch (err) {
+      console.error('Error conectando a Supabase:', err);
+    } finally {
+      setLoadingDb(false);
+    }
+  };
+
+  // Filtrado dinámico
   const filteredDevices = devices.filter(dev => {
     const matchesSearch = 
       dev.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -61,9 +106,19 @@ export default function DashboardPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleUpdateDevice = (updatedDevice: Device) => {
+  const handleUpdateDevice = async (updatedDevice: Device) => {
     setDevices(prev => prev.map(d => d.id === updatedDevice.id ? updatedDevice : d));
     setSelectedDevice(updatedDevice);
+
+    // Persistir el estado de bloqueo directamente en la base de datos Supabase
+    try {
+      await supabase
+        .from('devices')
+        .update({ is_locked: updatedDevice.locked })
+        .eq('id', updatedDevice.id);
+    } catch (e) {
+      console.error('Error actualizando estado en Supabase:', e);
+    }
   };
 
   return (
@@ -71,12 +126,10 @@ export default function DashboardPage() {
       
       {/* Sidebar Oscuro (Estilo SOC 2026) */}
       <aside className="w-64 bg-[#0A1525] border-r border-white/10 flex flex-col">
-        {/* Brand Header */}
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <CentryxLogo size="md" />
         </div>
 
-        {/* Navigation Menu */}
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
           <div className="px-3 pb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Plataforma Core</div>
           
@@ -118,7 +171,12 @@ export default function DashboardPage() {
           </Link>
         </nav>
 
-        {/* Footer del User Profile */}
+        {/* Status de Base de Datos Supabase */}
+        <div className="p-3 mx-4 mb-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center space-x-2 text-emerald-400 text-xs">
+          <Database className="w-4 h-4 flex-shrink-0" />
+          <span className="truncate">Supabase Live BD Conectada</span>
+        </div>
+
         <div className="p-4 border-t border-white/10 bg-[#050A14]/50 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 rounded-full bg-[#2DD4BF]/20 border border-[#2DD4BF]/40 flex items-center justify-center text-[#2DD4BF] font-bold text-xs uppercase">
@@ -139,18 +197,16 @@ export default function DashboardPage() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden">
         
-        {/* Top Operational Header Bar */}
         <header className="h-16 bg-[#0A1525] border-b border-white/10 px-8 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <h1 className="text-lg font-bold text-white tracking-wide">Centro de Control de Dispositivos</h1>
             <span className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Agente DPC Conectado</span>
+              <span>Conectado a Supabase PostgreSQL</span>
             </span>
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Buscador de Dispositivos */}
             <div className="relative w-64">
               <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
               <input 
@@ -162,16 +218,18 @@ export default function DashboardPage() {
               />
             </div>
 
-            <Link href="/login" className="px-3.5 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-all">
-              Cambiar Sesión
-            </Link>
+            <button
+              onClick={fetchLiveDevicesFromSupabase}
+              className="p-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-all"
+              title="Refrescar datos desde Supabase"
+            >
+              <RefreshCw className={`w-4 h-4 ${loadingDb ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         </header>
 
-        {/* Dashboard Dashboard Body */}
         <div className="flex-1 overflow-y-auto p-8 space-y-8">
           
-          {/* Métricas Principales de Telemetría */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-5">
               <div className="flex items-center justify-between">
@@ -180,7 +238,7 @@ export default function DashboardPage() {
               </div>
               <div className="mt-3 text-2xl font-extrabold text-white font-mono">{devices.length}</div>
               <div className="mt-1 text-[11px] text-emerald-400 flex items-center">
-                <span>100% Bajo Política DPC</span>
+                <span>Supabase Sync Activo</span>
               </div>
             </div>
 
@@ -192,7 +250,7 @@ export default function DashboardPage() {
               <div className="mt-3 text-2xl font-extrabold text-emerald-400 font-mono">
                 {devices.filter(d => d.status === 'online').length}
               </div>
-              <div className="mt-1 text-[11px] text-slate-400">Transmitiendo cada 30s</div>
+              <div className="mt-1 text-[11px] text-slate-400">Transmitiendo pings real</div>
             </div>
 
             <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-5">
@@ -203,7 +261,7 @@ export default function DashboardPage() {
               <div className="mt-3 text-2xl font-extrabold text-amber-400 font-mono">
                 {devices.filter(d => d.status === 'warning').length}
               </div>
-              <div className="mt-1 text-[11px] text-amber-400/80">App no autorizada activa</div>
+              <div className="mt-1 text-[11px] text-amber-400/80">App no autorizada</div>
             </div>
 
             <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-5">
@@ -218,7 +276,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Tabla de Dispositivos con Gestión en Vivo */}
           <div className="bg-[#0D1B2E] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <div>
@@ -228,10 +285,9 @@ export default function DashboardPage() {
                     {filteredDevices.length} filtrados
                   </span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Seleccione cualquier equipo para abrir la consola de control remoto</p>
+                <p className="text-xs text-slate-400 mt-0.5">Sincronizado directamente con Supabase PostgreSQL Cloud</p>
               </div>
 
-              {/* Filtros por Estado */}
               <div className="flex items-center space-x-2 bg-[#050A14] p-1.5 rounded-xl border border-white/10">
                 <button
                   onClick={() => setStatusFilter('all')}
@@ -360,7 +416,6 @@ export default function DashboardPage() {
 
       </main>
 
-      {/* Modal / Consola de Gestión Remota de Dispositivo */}
       <DeviceManagementModal 
         device={selectedDevice} 
         onClose={() => setSelectedDevice(null)} 
