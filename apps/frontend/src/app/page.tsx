@@ -42,14 +42,8 @@ export default function DashboardPage() {
   const [isLiveDatabaseConnected, setIsLiveDatabaseConnected] = useState<boolean>(true);
   const [loadingDb, setLoadingDb] = useState<boolean>(false);
 
-  // Lista de Dispositivos (Sincronizada con Supabase Cloud)
-  const [devices, setDevices] = useState<Device[]>([
-    { id: '1', name: 'Galaxy Tab A9 (Caja 01)', serial: 'SN-99821-A', imei: '358992109281201', company: 'Empresa Corporativa', branch: 'Sucursal Central', status: 'online', battery: 94, app: 'Punto de Venta POS', focusIndex: 98, locked: false },
-    { id: '2', name: 'Galaxy A15 (Logística #04)', serial: 'SN-88412-B', imei: '358992109281202', company: 'Empresa Corporativa', branch: 'Sucursal Norte', status: 'online', battery: 78, app: 'Waze GPS Navigation', focusIndex: 94, locked: false },
-    { id: '3', name: 'Nokia G42 (Supervisión)', serial: 'SN-77301-C', imei: '358992109281203', company: 'Empresa Corporativa', branch: 'Sucursal Este', status: 'warning', battery: 45, app: 'YouTube (No Permitido)', focusIndex: 62, locked: false },
-    { id: '4', name: 'Galaxy Tab A9 (Caja 02)', serial: 'SN-99822-D', imei: '358992109281204', company: 'Empresa Corporativa', branch: 'Sucursal Central', status: 'online', battery: 88, app: 'Punto de Venta POS', focusIndex: 99, locked: false },
-    { id: '5', name: 'Galaxy A05 (Entregas #12)', serial: 'SN-55210-E', imei: '358992109281205', company: 'Empresa Corporativa', branch: 'Sucursal Oeste', status: 'locked', battery: 12, app: 'Sistema Bloqueado', focusIndex: 0, locked: true },
-  ]);
+  // Lista de Dispositivos (Sincronizada 100% con Supabase Cloud)
+  const [devices, setDevices] = useState<Device[]>([]);
 
   // Cargar datos reales de Supabase al montar el componente
   useEffect(() => {
@@ -342,7 +336,25 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 font-medium">
-                  {filteredDevices.map((dev) => (
+                  {filteredDevices.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-16 text-center">
+                        <div className="flex flex-col items-center justify-center space-y-3">
+                          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-500">
+                            <Smartphone className="w-8 h-8" />
+                          </div>
+                          <div className="text-sm font-bold text-white">No hay equipos enrolados registrados</div>
+                          <p className="text-xs text-slate-400 max-w-sm">
+                            Vincule su primer teléfono Android desde el módulo <strong>Gestión de Equipos & Grupos</strong> o escaneando el Código QR de Enrolamiento.
+                          </p>
+                          <Link href="/equipos" className="mt-2 px-4 py-2 bg-[#101D42] border border-[#2DD4BF]/30 text-[#2DD4BF] text-xs font-bold rounded-xl hover:bg-[#2DD4BF] hover:text-slate-950 transition-all">
+                            Ir a Gestión de Equipos & QR
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredDevices.map((dev) => (
                     <tr 
                       key={dev.id} 
                       onClick={() => setSelectedDevice(dev)}
@@ -411,7 +423,8 @@ export default function DashboardPage() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  ))
+                  )}
                 </tbody>
               </table>
             </div>
