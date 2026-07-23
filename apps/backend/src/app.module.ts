@@ -5,6 +5,8 @@ import { OrganizationModule } from './modules/organization/organization.module';
 import { DevicesModule } from './modules/devices/devices.module';
 import { TelemetryModule } from './modules/telemetry/telemetry.module';
 import { RemoteControlModule } from './modules/remote-control/remote-control.module';
+import { FocusIndexModule } from './modules/focus-index/focus-index.module';
+import { AlertsModule } from './modules/alerts/alerts.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { RemoteControlModule } from './modules/remote-control/remote-control.mod
     DevicesModule,
     TelemetryModule,
     RemoteControlModule,
+    FocusIndexModule,
+    AlertsModule,
   ],
 })
 export class AppModule {}
