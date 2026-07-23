@@ -17,6 +17,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
 
 // Cliente Supabase Cloud
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sylwwjuwxtziljjkowsz.supabase.co';
@@ -68,7 +69,7 @@ export default function UsuariosPage() {
           username: u.username || 'user',
           fullName: u.full_name || u.username || 'Usuario Registrado',
           email: u.email || 'correo@centryx.io',
-          role: u.role === 'master' || u.role === 'super_admin' ? 'super_admin' : 'user_base',
+          role: u.role === 'master' || u.role === 'company_admin' ? 'super_admin' : 'user_base',
           status: 'Activo',
           createdAt: u.created_at ? u.created_at.substring(0, 10) : '2026-07-23'
         }));
@@ -88,12 +89,16 @@ export default function UsuariosPage() {
     if (!newUsername || !newPassword) return;
 
     try {
+      // Generar Hash Bcrypt seguro de la contraseña
+      const passwordHash = await bcrypt.hash(newPassword.trim(), 10);
+      const mappedRole = newRole === 'super_admin' ? 'company_admin' : 'read_only';
+
       const newUserRecord = {
         username: newUsername.toLowerCase().trim(),
         email: newEmail || `${newUsername}@centryx.io`,
         full_name: newFullName || newUsername,
-        password_hash: newPassword,
-        role: newRole === 'super_admin' ? 'super_admin' : 'user_base'
+        password_hash: passwordHash,
+        role: mappedRole
       };
 
       const { data, error } = await supabase.from('platform_users').insert(newUserRecord).select().single();
@@ -107,7 +112,7 @@ export default function UsuariosPage() {
         setNewFullName('');
         setNewEmail('');
         setNewPassword('');
-        setNotification(`Usuario '${newUsername}' creado exitosamente en Supabase Cloud.`);
+        setNotification(`Usuario '${newUsername}' guardado exitosamente en la base de datos de Supabase.`);
       }
     } catch (err: any) {
       setNotification(`Error inesperado: ${err.message}`);
@@ -132,7 +137,7 @@ export default function UsuariosPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Gestión de Usuarios & Roles de Plataforma</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Gestión de Usuarios &amp; Roles de Plataforma</h1>
             <p className="text-xs text-slate-400 mt-0.5">Sincronizado 100% en tiempo real con Supabase PostgreSQL</p>
           </div>
         </div>
@@ -219,7 +224,7 @@ export default function UsuariosPage() {
 
                   <td className="py-4 px-6 text-slate-300">
                     {u.role === 'super_admin' ? (
-                      <span className="text-emerald-400 font-semibold">✓ Acceso Total & Control Remoto</span>
+                      <span className="text-emerald-400 font-semibold">✓ Acceso Total &amp; Control Remoto</span>
                     ) : (
                       <span className="text-slate-400">✓ Consulta de Datos (Sin Configuración Sensible)</span>
                     )}
