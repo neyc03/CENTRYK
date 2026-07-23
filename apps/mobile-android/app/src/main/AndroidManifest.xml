@@ -69,6 +69,20 @@
             android:enabled="true"
             android:exported="false" />
 
+        <!-- Servicio de Geolocalizacion GPS Persistente -->
+        <service 
+            android:name=".services.LocationTrackerService"
+            android:foregroundServiceType="location"
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- Servicio de Alarma Sonora Remota a Volumen Maximo -->
+        <service 
+            android:name=".services.AudioAlarmService"
+            android:foregroundServiceType="specialUse"
+            android:enabled="true"
+            android:exported="false" />
+
         <!-- Auto-Inicio al Encender el Telefono -->
         <receiver
             android:name=".BootReceiver"

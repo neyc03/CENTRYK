@@ -30,11 +30,14 @@ import {
   ToggleLeft,
   ToggleRight,
   Check,
-  Ban
+  Ban,
+  ExternalLink,
+  Copy
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
+import QRCode from 'qrcode';
 
 // Cliente Supabase Cloud
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sylwwjuwxtziljjkowsz.supabase.co';
@@ -42,6 +45,12 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOi
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const DEFAULT_BRANCH_ID = "beb32800-bba4-4b0f-84ab-47ecc150a5c7";
+const DEFAULT_COMPANY_ID = "3ad63dff-7d45-4b07-83a0-152c04634510";
+
+// Datos de aprovisionamiento calculados exactamente
+const PUBLIC_APK_DOWNLOAD_URL = "https://centryk-frontend.vercel.app/apk/centryx-dpc-v2.apk";
+const APK_SHA256_BASE64URL = "O7-Ag5Ajmf4l4EdAWVlLTp0x59yvqWLykniFZoHXvuc=";
+const APK_SHA256_HEX = "3BBF8083902399FE25E0474059594B4E9D31E7DCAFA962F29278856681D7BEE7";
 
 export interface StaffGroup {
   id: string;
@@ -85,6 +94,10 @@ export default function EquiposManagementPage() {
   const [notification, setNotification] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Estados QR Code
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [copiedUrl, setCopiedUrl] = useState(false);
+
   // Modal Restricción Individual de Aplicaciones por Dispositivo
   const [selectedDeviceForApps, setSelectedDeviceForApps] = useState<ManagedDevice | null>(null);
 
@@ -107,13 +120,42 @@ export default function EquiposManagementPage() {
       return;
     }
     fetchDataFromSupabase();
+    generateRealEnterpriseQR();
   }, [router]);
+
+  const generateRealEnterpriseQR = async () => {
+    try {
+      const payload = {
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "io.centryx.mdm/.CentryxDeviceAdminReceiver",
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": PUBLIC_APK_DOWNLOAD_URL,
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM": APK_SHA256_BASE64URL,
+        "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,
+        "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
+          "server_url": supabaseUrl,
+          "company_id": DEFAULT_COMPANY_ID,
+          "branch_id": DEFAULT_BRANCH_ID
+        }
+      };
+
+      const jsonStr = JSON.stringify(payload, null, 2);
+      const url = await QRCode.toDataURL(jsonStr, {
+        width: 400,
+        margin: 2,
+        color: {
+          dark: '#050A14',
+          light: '#FFFFFF'
+        }
+      });
+      setQrDataUrl(url);
+    } catch (err) {
+      console.error('Error generando QR:', err);
+    }
+  };
 
   const fetchDataFromSupabase = async () => {
     try {
       setLoading(true);
 
-      // 1. Obtener Grupos reales de la base de datos
       const { data: dbGroups } = await supabase.from('staff_groups').select('*');
       if (dbGroups && dbGroups.length > 0) {
         const mappedG: StaffGroup[] = dbGroups.map((g: any) => ({
@@ -129,7 +171,6 @@ export default function EquiposManagementPage() {
         setGroups([]);
       }
 
-      // 2. Obtener Dispositivos reales de la base de datos
       const { data: dbDevices } = await supabase.from('devices').select('*');
       if (dbDevices && dbDevices.length > 0) {
         const mappedD: ManagedDevice[] = dbDevices.map((d: any) => ({
@@ -157,7 +198,6 @@ export default function EquiposManagementPage() {
     }
   };
 
-  // BOTÓN DE BLOQUEO GENERAL REMOTO DE TELÉFONO (Ejecuta Bloqueo Instantáneo en la BD)
   const handleToggleRemoteLockDevice = async (device: ManagedDevice) => {
     const newLockState = !device.isLocked;
     const actionText = newLockState ? 'Bloquear' : 'Desbloquear';
@@ -180,7 +220,6 @@ export default function EquiposManagementPage() {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Restricción Individual de Apps por Dispositivo
   const handleToggleAppForDevice = (appName: string) => {
     if (!selectedDeviceForApps) return;
 
@@ -208,7 +247,6 @@ export default function EquiposManagementPage() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Crear o Editar Grupo en la Base de Datos con branch_id válido
   const handleSaveGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGroupName) return;
@@ -245,7 +283,6 @@ export default function EquiposManagementPage() {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Eliminar Grupo de la Base de Datos
   const handleDeleteGroup = async (groupId: string, groupName: string) => {
     if (!confirm(`¿Está seguro de eliminar el grupo '${groupName}'?`)) return;
     try {
@@ -259,7 +296,6 @@ export default function EquiposManagementPage() {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Eliminar Dispositivo de la Base de Datos
   const handleDeleteDevice = async (deviceId: string, deviceName: string) => {
     if (!confirm(`¿Está seguro de eliminar el teléfono '${deviceName}' del servidor?`)) return;
     try {
@@ -271,6 +307,12 @@ export default function EquiposManagementPage() {
       setNotification(`Error: ${err.message}`);
     }
     setTimeout(() => setNotification(null), 4000);
+  };
+
+  const copyDownloadUrl = () => {
+    navigator.clipboard.writeText(PUBLIC_APK_DOWNLOAD_URL);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2500);
   };
 
   const filteredDevices = devices.filter(d => 
@@ -312,7 +354,7 @@ export default function EquiposManagementPage() {
             className="flex items-center space-x-2 bg-gradient-to-r from-[#2DD4BF] to-[#3B82F6] text-[#050A14] px-4 py-2.5 rounded-xl font-bold text-xs shadow-[0_0_20px_rgba(45,212,191,0.3)] hover:opacity-90 transition-all cursor-pointer"
           >
             <QrCode className="w-4 h-4" />
-            <span>Generar QR Enrolamiento</span>
+            <span>Generar QR Aprovisionamiento DPC</span>
           </button>
         </div>
       </div>
@@ -371,7 +413,7 @@ export default function EquiposManagementPage() {
           }`}
         >
           <QrCode className="w-4 h-4" />
-          <span>Código QR DPC</span>
+          <span>Código QR DPC Real</span>
         </button>
       </div>
 
@@ -509,21 +551,105 @@ export default function EquiposManagementPage() {
         </div>
       )}
 
-      {/* Pestaña Código QR DPC */}
+      {/* Pestaña Código QR DPC Real */}
       {activeTab === 'qr' && (
-        <div className="p-8 rounded-3xl bg-[#0D1B2E] border border-white/10 space-y-8 text-center">
-          <div>
-            <h2 className="text-xl font-bold text-white flex items-center justify-center space-x-2">
-              <QrCode className="w-6 h-6 text-[#2DD4BF]" />
-              <span>Código QR de Aprovisionamiento DPC Android Enterprise</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1 max-w-lg mx-auto">
-              Escanee este código QR al encender cualquier teléfono Android nuevo tras tocar 6 veces la pantalla de bienvenida.
-            </p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="p-8 rounded-3xl bg-[#0D1B2E] border border-white/10 space-y-6 text-center shadow-xl">
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center justify-center space-x-2">
+                <QrCode className="w-6 h-6 text-[#2DD4BF]" />
+                <span>Código QR Aprovisionamiento Device Owner</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Escanee este código QR al encender cualquier teléfono Android nuevo o formateado tras tocar 6 veces la pantalla de bienvenida.
+              </p>
+            </div>
+
+            {qrDataUrl ? (
+              <div className="p-6 bg-white rounded-3xl w-72 h-72 mx-auto flex flex-col items-center justify-center border-4 border-[#2DD4BF] shadow-[0_0_35px_rgba(45,212,191,0.35)]">
+                <img src={qrDataUrl} alt="Código QR Android Enterprise DPC" className="w-60 h-60 object-contain" />
+              </div>
+            ) : (
+              <div className="w-64 h-64 mx-auto bg-white/5 rounded-3xl flex items-center justify-center">
+                <RefreshCw className="w-8 h-8 text-[#2DD4BF] animate-spin" />
+              </div>
+            )}
+
+            <div className="pt-2 flex justify-center">
+              <a 
+                href={qrDataUrl} 
+                download="Centryx-MDM-DeviceOwner-QR.png"
+                className="px-6 py-2.5 bg-[#101D42] border border-[#2DD4BF]/40 text-[#2DD4BF] font-bold rounded-xl text-xs hover:bg-[#2DD4BF] hover:text-slate-950 transition-all flex items-center space-x-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>Descargar Código QR PNG</span>
+              </a>
+            </div>
           </div>
-          <div className="p-6 bg-white rounded-3xl w-64 h-64 mx-auto flex flex-col items-center justify-center border-4 border-[#2DD4BF] shadow-[0_0_30px_rgba(45,212,191,0.3)]">
-            <QrCode className="w-36 h-36 text-slate-950" />
-            <span className="text-slate-950 font-mono text-[10px] font-bold mt-2">CENTRYX MDM DPC PAYLOAD</span>
+
+          <div className="p-8 rounded-3xl bg-[#0D1B2E] border border-white/10 space-y-6 shadow-xl text-xs">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider border-b border-white/10 pb-3 flex items-center space-x-2">
+              <ShieldAlert className="w-4 h-4 text-[#2DD4BF]" />
+              <span>Verificación de Datos de Aprovisionamiento DPC</span>
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-slate-400 font-semibold block mb-1">URL Pública de Descarga APK:</label>
+                <div className="flex items-center space-x-2">
+                  <input 
+                    type="text" 
+                    readOnly 
+                    value={PUBLIC_APK_DOWNLOAD_URL}
+                    className="w-full p-2.5 bg-[#050A14] border border-white/10 rounded-xl text-white font-mono text-[11px]"
+                  />
+                  <button 
+                    onClick={copyDownloadUrl}
+                    className="p-2.5 bg-[#101D42] border border-[#2DD4BF]/30 text-[#2DD4BF] rounded-xl hover:bg-[#2DD4BF] hover:text-slate-950 transition-all"
+                    title="Copiar URL"
+                  >
+                    {copiedUrl ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                  <a 
+                    href={PUBLIC_APK_DOWNLOAD_URL} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="p-2.5 bg-white/5 border border-white/10 text-slate-300 rounded-xl hover:bg-white/10 transition-all"
+                    title="Probar Descarga"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-400 font-semibold block mb-1">Checksum SHA-256 (Base64Url para QR):</label>
+                <input 
+                  type="text" 
+                  readOnly 
+                  value={APK_SHA256_BASE64URL}
+                  className="w-full p-2.5 bg-[#050A14] border border-white/10 rounded-xl text-[#2DD4BF] font-mono text-[11px]"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 font-semibold block mb-1">Checksum SHA-256 (HEX):</label>
+                <input 
+                  type="text" 
+                  readOnly 
+                  value={APK_SHA256_HEX}
+                  className="w-full p-2.5 bg-[#050A14] border border-white/10 rounded-xl text-slate-300 font-mono text-[10px]"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 font-semibold block mb-1">Vínculo de Empresa &amp; Sucursal:</label>
+                <div className="p-3 bg-[#050A14] border border-white/10 rounded-xl font-mono text-[10px] space-y-1 text-slate-300">
+                  <div>COMPANY_ID: {DEFAULT_COMPANY_ID}</div>
+                  <div>BRANCH_ID: {DEFAULT_BRANCH_ID}</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
