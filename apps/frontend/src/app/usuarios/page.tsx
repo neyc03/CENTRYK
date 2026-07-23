@@ -138,7 +138,7 @@ export default function UsuariosPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Gestión de Usuarios &amp; Roles de Plataforma</h1>
-            <p className="text-xs text-slate-400 mt-0.5">Sincronizado 100% en tiempo real con Supabase PostgreSQL</p>
+            <p className="text-xs text-slate-400 mt-0.5">Sincronizado 100% en tiempo real con Servidor de Autenticación Centryx</p>
           </div>
         </div>
 

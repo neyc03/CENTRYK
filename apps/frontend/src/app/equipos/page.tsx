@@ -254,7 +254,7 @@ export default function EquiposManagementPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Panel de Gestión de Equipos, Grupos &amp; QR DPC</h1>
-            <p className="text-xs text-slate-400 mt-0.5">Control Total CRUD (Crear, Editar, Eliminar) sincronizado en tiempo real con Supabase</p>
+            <p className="text-xs text-slate-400 mt-0.5">Control Total CRUD (Crear, Editar, Eliminar) sincronizado en tiempo real con la Plataforma Centryx MDM</p>
           </div>
         </div>
 
@@ -345,8 +345,8 @@ export default function EquiposManagementPage() {
         <div className="bg-[#0D1B2E] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
           <div className="p-6 border-b border-white/10 flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-white">Dispositivos Reales en Supabase</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Asigne grupo o elimine cualquier equipo de la base de datos</p>
+              <h3 className="text-base font-bold text-white">Dispositivos Registrados en Plataforma</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Asigne grupo o elimine cualquier equipo del servidor corporativo</p>
             </div>
 
             <div className="relative w-64">

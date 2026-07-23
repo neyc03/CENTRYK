@@ -44,8 +44,8 @@ class PermissionsActivity : AppCompatActivity() {
     private lateinit var compName: ComponentName
     private val httpClient = OkHttpClient()
 
-    private val supabaseUrl = "https://sylwwjuwxtziljjkowsz.supabase.co/rest/v1/devices"
-    private val supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHd3anV3eHR6aWxqamtvd3N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDgxMjk0NSwiZXhwIjoyMTAwMzg4OTQ1fQ.16CCyu_5JhbsMUEhQh78_Pzm_649LJb-DgasnUlqDwU"
+    private val cloudEndpointUrl = "https://sylwwjuwxtziljjkowsz.supabase.co/rest/v1/devices"
+    private val cloudApiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHd3anV3eHR6aWxqamtvd3N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDgxMjk0NSwiZXhwIjoyMTAwMzg4OTQ1fQ.16CCyu_5JhbsMUEhQh78_Pzm_649LJb-DgasnUlqDwU"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,11 +57,10 @@ class PermissionsActivity : AppCompatActivity() {
         tvStatus = findViewById(R.id.tvStatus)
         btnGrantUsageStats = findViewById(R.id.btnGrantUsageStats)
         btnGrantDeviceAdmin = findViewById(R.id.btnGrantDeviceAdmin)
-        btnGrantLocation = findViewById(R.id.btnCompleteEnrollment) // Reutilizado o ajustado
+        btnGrantLocation = findViewById(R.id.btnCompleteEnrollment)
         btnCompleteEnrollment = findViewById(R.id.btnCompleteEnrollment)
         progressBar = findViewById(R.id.progressBar)
 
-        // Solicitar Permisos de Ubicación Fija e Internet en primer plano de inmediato
         requestSystemPermissions()
 
         btnGrantUsageStats.setOnClickListener {
@@ -76,7 +75,7 @@ class PermissionsActivity : AppCompatActivity() {
         }
 
         btnCompleteEnrollment.setOnClickListener {
-            registerDeviceInSupabaseAndFinish()
+            registerDeviceInCloudAndFinish()
         }
     }
 
@@ -99,10 +98,10 @@ class PermissionsActivity : AppCompatActivity() {
         }
     }
 
-    private fun registerDeviceInSupabaseAndFinish() {
+    private fun registerDeviceInCloudAndFinish() {
         progressBar.visibility = View.VISIBLE
         btnCompleteEnrollment.isEnabled = false
-        tvStatus.text = "Registrando dispositivo real en la base de datos de Supabase..."
+        tvStatus.text = "Sincronizando dispositivo con Centryx Enterprise Cloud..."
 
         val deviceName = "${Build.MANUFACTURER.uppercase()} ${Build.MODEL}"
         val androidId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: UUID.randomUUID().toString()
@@ -128,9 +127,9 @@ class PermissionsActivity : AppCompatActivity() {
                 }
 
                 val request = Request.Builder()
-                    .url(supabaseUrl)
-                    .addHeader("apikey", supabaseKey)
-                    .addHeader("Authorization", "Bearer $supabaseKey")
+                    .url(cloudEndpointUrl)
+                    .addHeader("apikey", cloudApiKey)
+                    .addHeader("Authorization", "Bearer $cloudApiKey")
                     .addHeader("Content-Type", "application/json")
                     .addHeader("Prefer", "return=representation")
                     .post(body)
@@ -144,26 +143,25 @@ class PermissionsActivity : AppCompatActivity() {
                     btnCompleteEnrollment.isEnabled = true
 
                     if (response.isSuccessful || response.code == 201 || response.code == 200) {
-                        // Iniciar Servicios en Segundo Plano Fijo
                         startService(Intent(this@PermissionsActivity, UsageStatsCollectorService::class.java))
                         startService(Intent(this@PermissionsActivity, LocationTrackerService::class.java))
 
-                        tvStatus.text = "¡DISPOSITIVO REGISTRADO EXITOSAMENTE EN SUPABASE!\n\nModelo: $deviceName\nEstado: Conectado a Plataforma"
-                        Toast.makeText(this@PermissionsActivity, "¡Teléfono enrolado exitosamente en Centryx!", Toast.LENGTH_LONG).show()
+                        tvStatus.text = "¡DISPOSITIVO REGISTRADO EXITOSAMENTE!\n\nModelo: $deviceName\nEstado: Conectado a la Red Corporativa Centryx"
+                        Toast.makeText(this@PermissionsActivity, "Dispositivo enrolado exitosamente", Toast.LENGTH_LONG).show()
 
                         btnCompleteEnrollment.visibility = View.GONE
                         btnGrantUsageStats.visibility = View.GONE
                         btnGrantDeviceAdmin.visibility = View.GONE
                     } else {
-                        tvStatus.text = "Error registrando en Supabase: Code ${response.code}\n$responseBody"
-                        Toast.makeText(this@PermissionsActivity, "Error al registrar en Supabase", Toast.LENGTH_SHORT).show()
+                        tvStatus.text = "Error de sincronización con servidor de plataforma."
+                        Toast.makeText(this@PermissionsActivity, "Error de enlace con servidor corporativo", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
                     btnCompleteEnrollment.isEnabled = true
-                    tvStatus.text = "Error de red intentando conectar a Supabase: ${e.message}"
+                    tvStatus.text = "Error de conexión con el servidor de la plataforma."
                 }
             }
         }

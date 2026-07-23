@@ -28,7 +28,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Otorgue los permisos obligatorios para conectar este teléfono en vivo con la plataforma."
+            android:text="Otorgue los permisos requeridos para conectar este teléfono en vivo con la plataforma."
             android:textColor="#94A3B8"
             android:textSize="11sp"
             android:gravity="center"
@@ -60,7 +60,7 @@
             android:id="@+id/btnCompleteEnrollment"
             android:layout_width="match_parent"
             android:layout_height="54dp"
-            android:text="3. Conectar a Supabase &amp; Activar"
+            android:text="3. Conectar Servidor &amp; Activar"
             android:textColor="#050A14"
             android:textSize="13sp"
             android:textStyle="bold"
