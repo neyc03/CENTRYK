@@ -46,6 +46,7 @@ class PermissionsActivity : AppCompatActivity() {
 
     private val cloudEndpointUrl = "https://sylwwjuwxtziljjkowsz.supabase.co/rest/v1/devices"
     private val cloudApiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHd3anV3eHR6aWxqamtvd3N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDgxMjk0NSwiZXhwIjoyMTAwMzg4OTQ1fQ.16CCyu_5JhbsMUEhQh78_Pzm_649LJb-DgasnUlqDwU"
+    private val defaultCompanyId = "3ad63dff-7d45-4b07-83a0-152c04634510"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -105,26 +106,28 @@ class PermissionsActivity : AppCompatActivity() {
 
         val deviceName = "${Build.MANUFACTURER.uppercase()} ${Build.MODEL}"
         val androidId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: UUID.randomUUID().toString()
-        val osVersion = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
+        val osVersion = "Android ${Build.VERSION.RELEASE}"
         
         val batteryManager = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
         val batteryLevel = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
 
         val jsonPayload = JSONObject().apply {
+            put("company_id", defaultCompanyId)
             put("device_name", deviceName)
-            put("imei", "IMEI-$androidId")
-            put("serial_number", androidId)
-            put("os_version", osVersion)
-            put("battery_level", if (batteryLevel > 0) batteryLevel else 88)
+            put("imei", androidId)
+            put("serial_number", "SN-$androidId")
+            put("model", Build.MODEL)
+            put("android_version", osVersion)
+            put("battery_level", if (batteryLevel > 0) batteryLevel else 90)
             put("is_locked", false)
+            put("is_online", true)
             put("last_ping_at", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).format(java.util.Date()))
         }
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val body = jsonPayload.toString().toMediaType().let { mediaType ->
-                    jsonPayload.toString().toRequestBody(mediaType)
-                }
+                val mediaType = "application/json".toMediaType()
+                val body = jsonPayload.toString().toRequestBody(mediaType)
 
                 val request = Request.Builder()
                     .url(cloudEndpointUrl)
@@ -153,15 +156,15 @@ class PermissionsActivity : AppCompatActivity() {
                         btnGrantUsageStats.visibility = View.GONE
                         btnGrantDeviceAdmin.visibility = View.GONE
                     } else {
-                        tvStatus.text = "Error de sincronización con servidor de plataforma."
-                        Toast.makeText(this@PermissionsActivity, "Error de enlace con servidor corporativo", Toast.LENGTH_SHORT).show()
+                        tvStatus.text = "Error de sincronización (${response.code}). Reintentando conexión..."
+                        Toast.makeText(this@PermissionsActivity, "Error de registro: HTTP ${response.code}", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
                     btnCompleteEnrollment.isEnabled = true
-                    tvStatus.text = "Error de conexión con el servidor de la plataforma."
+                    tvStatus.text = "Error de red intentando conectar a la plataforma: ${e.message}"
                 }
             }
         }
