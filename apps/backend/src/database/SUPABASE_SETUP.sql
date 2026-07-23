@@ -72,7 +72,8 @@ CREATE TABLE IF NOT EXISTS devices (
 CREATE TABLE IF NOT EXISTS platform_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-    email VARCHAR(150) UNIQUE NOT NULL,
+    username VARCHAR(150) UNIQUE NOT NULL,
+    email VARCHAR(150),
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(150) NOT NULL,
     role VARCHAR(50) DEFAULT 'company_admin' CHECK (role IN ('master', 'company_admin', 'branch_supervisor', 'read_only')),
@@ -81,6 +82,7 @@ CREATE TABLE IF NOT EXISTS platform_users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
 
 -- 3. PARTICIONAMIENTO DECLARATIVO DE ALTA VELOCIDAD (TIME-SERIES PARTITIONING)
 -- Particionamiento por rango de fechas (Mes a Mes) para garantizar cero lentitud con millones de pings

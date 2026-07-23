@@ -31,17 +31,18 @@ export class SeedService {
       .select()
       .single();
 
-    // 3. Crear Usuario Master de Pruebas
+    // 3. Crear Usuario Master de Pruebas con Username (Sin formato de correo obligado)
     const passwordHash = await bcrypt.hash('CentryxMaster2026!', 10);
     const { data: user, error: userErr } = await supabase
       .from('platform_users')
       .upsert({
         company_id: company.id,
+        username: 'master',
         email: 'master@centryx.io',
         password_hash: passwordHash,
         full_name: 'Usuario Master Centryx',
         role: 'master',
-      }, { onConflict: 'email' })
+      }, { onConflict: 'username' })
       .select()
       .single();
 
@@ -52,7 +53,7 @@ export class SeedService {
       message: 'Base de Datos Supabase inicializada y poblada con éxito',
       seeded: {
         companyId: company.id,
-        masterEmail: 'master@centryx.io',
+        masterUsername: 'master',
       },
     };
   }

@@ -18,6 +18,9 @@ export class PlatformUser {
 
   @Index({ unique: true })
   @Column({ type: 'varchar', length: 150 })
+  username: string;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
   email: string;
 
   @Column({ type: 'varchar', length: 255 })
