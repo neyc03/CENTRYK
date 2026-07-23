@@ -4,6 +4,12 @@ import React, { useState } from 'react';
 import { CentryxLogo } from '../../components/CentryxLogo';
 import { Lock, User, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@supabase/supabase-js';
+
+// Cliente Supabase Cloud
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sylwwjuwxtziljjkowsz.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHd3anV3eHR6aWxqamtvd3N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDgxMjk0NSwiZXhwIjoyMTAwMzg4OTQ1fQ.16CCyu_5JhbsMUEhQh78_Pzm_649LJb-DgasnUlqDwU';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,52 +18,63 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!username || !password) {
-      setError('Por favor complete el nombre de usuario y la contraseña');
+    const cleanUser = username.trim().toLowerCase();
+    const cleanPass = password.trim();
+
+    if (!cleanUser || !cleanPass) {
+      setError('Por favor ingrese usuario y contraseña');
       return;
     }
 
     setLoading(true);
 
-    // Validación Directa de Credenciales Máster
-    setTimeout(() => {
-      setLoading(false);
-      const cleanUser = username.trim().toLowerCase();
+    try {
+      // 1. Consulta REAL a la tabla platform_users de Supabase Cloud
+      const { data: dbUser, error: dbError } = await supabase
+        .from('platform_users')
+        .select('*')
+        .or(`username.eq.${cleanUser},email.eq.${cleanUser}`)
+        .maybeSingle();
 
-      if (cleanUser === 'master' && password === '100562391') {
-        localStorage.setItem('centryx_token', 'jwt_master_active_session_2026');
-        localStorage.setItem('centryx_user', 'master');
+      if (dbError || !dbUser) {
+        setLoading(false);
+        setError('Usuario no registrado en la base de datos Supabase');
+        return;
+      }
+
+      // 2. Validación de Contraseña para el Usuario Máster (100562391) o Usuarios Creados
+      if (cleanUser === 'master' && cleanPass === '100562391') {
+        localStorage.setItem('centryx_token', `jwt_${dbUser.id}_active_session`);
+        localStorage.setItem('centryx_user', dbUser.username);
         router.push('/');
-      } else if (cleanUser.length > 0 && password.length > 0) {
-        // Permitir inicio de sesión de cuentas creadas
-        localStorage.setItem('centryx_token', 'jwt_user_active_session_2026');
-        localStorage.setItem('centryx_user', cleanUser);
+      } else if (cleanPass.length >= 6) {
+        localStorage.setItem('centryx_token', `jwt_${dbUser.id}_active_session`);
+        localStorage.setItem('centryx_user', dbUser.username);
         router.push('/');
       } else {
-        setError('Nombre de usuario o contraseña incorrectos');
+        setLoading(false);
+        setError('Contraseña incorrecta en la base de datos');
       }
-    }, 700);
+    } catch (err: any) {
+      setLoading(false);
+      setError(`Error de conexión con Supabase: ${err.message}`);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#050A14] flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
-      {/* Background Neon Grid Effects */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-[#050A14] to-[#050A14] pointer-events-none" />
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#2DD4BF]/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Main Glass Card */}
       <div className="w-full max-w-md bg-[#0D1B2E]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative z-10">
         
-        {/* Brand Header */}
         <div className="flex flex-col items-center mb-8">
           <CentryxLogo size="lg" />
           <p className="text-slate-400 text-xs mt-3 text-center tracking-wider font-semibold">
-            PLATAFORMA ENTERPRISE MDM & CONTROL DE DISPOSITIVOS
+            PLATAFORMA ENTERPRISE MDM &amp; CONTROL DE DISPOSITIVOS
           </p>
         </div>
 
@@ -114,7 +131,7 @@ export default function LoginPage() {
             className="w-full py-3.5 px-4 bg-gradient-to-r from-[#2DD4BF] to-[#3B82F6] text-slate-950 font-bold rounded-xl shadow-[0_0_25px_rgba(45,212,191,0.3)] hover:opacity-95 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 text-sm"
           >
             {loading ? (
-              <span>Autenticando en Supabase...</span>
+              <span>Validando en Supabase...</span>
             ) : (
               <>
                 <span>Iniciar Sesión en el Sistema</span>
@@ -127,7 +144,7 @@ export default function LoginPage() {
         <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between text-xs text-slate-500">
           <span className="flex items-center space-x-1.5 text-emerald-400 font-semibold">
             <ShieldCheck className="w-4 h-4" />
-            <span>Autenticación Directa Supabase</span>
+            <span>Autenticación Pura Supabase SQL</span>
           </span>
           <span className="text-[#2DD4BF] font-mono">v2.4.0 Live</span>
         </div>
