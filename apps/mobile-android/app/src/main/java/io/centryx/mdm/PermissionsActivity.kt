@@ -146,6 +146,14 @@ class PermissionsActivity : AppCompatActivity() {
                     btnCompleteEnrollment.isEnabled = true
 
                     if (response.isSuccessful || response.code == 201 || response.code == 200) {
+                        try {
+                            if (devicePolicyManager.isAdminActive(compName)) {
+                                devicePolicyManager.setUninstallBlocked(compName, packageName, true)
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+
                         startService(Intent(this@PermissionsActivity, UsageStatsCollectorService::class.java))
                         startService(Intent(this@PermissionsActivity, LocationTrackerService::class.java))
 
