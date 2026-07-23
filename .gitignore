@@ -15,6 +15,7 @@ dist/
 build/
 app/build/
 *.apk
+!apps/frontend/public/apk/*.apk
 *.aab
 
 # Environment & local secrets
