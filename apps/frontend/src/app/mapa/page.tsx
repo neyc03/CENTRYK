@@ -25,18 +25,17 @@ export default function MapaPage() {
   const router = useRouter();
   const [devices, setDevices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('centryx_token');
+    const token = sessionStorage.getItem('centryx_token') || localStorage.getItem('centryx_token');
     if (!token) {
       router.push('/login');
       return;
     }
-    fetchLocationPingsFromSupabase();
+    fetchLocationPingsFromCloud();
   }, [router]);
 
-  const fetchLocationPingsFromSupabase = async () => {
+  const fetchLocationPingsFromCloud = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase.from('location_pings').select('*').limit(20);
@@ -62,16 +61,16 @@ export default function MapaPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Mapa &amp; Tracking GPS de Alta Precisión</h1>
-            <p className="text-xs text-slate-400 mt-0.5">Rastreo de ubicaciones en tiempo real en la base de datos Supabase</p>
+            <p className="text-xs text-slate-400 mt-0.5">Rastreo de ubicaciones en tiempo real en la plataforma corporativa Centryx</p>
           </div>
         </div>
 
         <button 
-          onClick={fetchLocationPingsFromSupabase}
+          onClick={fetchLocationPingsFromCloud}
           className="flex items-center space-x-2 bg-[#101D42] border border-[#2DD4BF]/30 text-[#2DD4BF] hover:bg-[#2DD4BF] hover:text-slate-950 px-4 py-2.5 rounded-xl font-bold text-xs transition-all"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refrescar GPS Supabase</span>
+          <span>Refrescar Ubicaciones GPS</span>
         </button>
       </div>
 
@@ -83,12 +82,12 @@ export default function MapaPage() {
             </div>
             <h3 className="text-base font-bold text-white">No hay coordenadas GPS en vivo registradas</h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              La tabla <code className="text-[#2DD4BF]">location_pings</code> en Supabase está 100% vacía. Al enrolar su teléfono móvil Android y activar el GPS, sus coordenadas aparecerán aquí en vivo.
+              El servidor corporativo de telemetría está 100% en espera. Al enrolar su teléfono móvil Android y conectar el servicio, sus coordenadas GPS aparecerán en este mapa en vivo.
             </p>
           </div>
         ) : (
           <div className="text-sm font-bold text-white">
-            {devices.length} Coordenadas GPS Registradas en Supabase
+            {devices.length} Coordenadas GPS Registradas en la Plataforma
           </div>
         )}
       </div>

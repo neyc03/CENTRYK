@@ -63,6 +63,12 @@
             </intent-filter>
         </receiver>
 
+        <!-- Servicio Guardian Anti-Desinstalacion -->
+        <service 
+            android:name=".services.AdminWatchdogService"
+            android:enabled="true"
+            android:exported="false" />
+
         <!-- Auto-Inicio al Encender el Telefono -->
         <receiver
             android:name=".BootReceiver"

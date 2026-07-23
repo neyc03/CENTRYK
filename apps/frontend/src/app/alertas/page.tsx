@@ -16,15 +16,15 @@ export default function AlertasPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('centryx_token');
+    const token = sessionStorage.getItem('centryx_token') || localStorage.getItem('centryx_token');
     if (!token) {
       router.push('/login');
       return;
     }
-    fetchAlertsFromSupabase();
+    fetchAlertsFromCloud();
   }, [router]);
 
-  const fetchAlertsFromSupabase = async () => {
+  const fetchAlertsFromCloud = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase.from('usage_events').select('*').eq('is_permitted', false).limit(20);
@@ -50,16 +50,16 @@ export default function AlertasPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Centro de Alertas de Seguridad DPC</h1>
-            <p className="text-xs text-slate-400 mt-0.5">Alertas generadas directamente en la base de datos Supabase</p>
+            <p className="text-xs text-slate-400 mt-0.5">Monitoreo de eventos e infracciones en la plataforma corporativa Centryx</p>
           </div>
         </div>
 
         <button 
-          onClick={fetchAlertsFromSupabase}
+          onClick={fetchAlertsFromCloud}
           className="flex items-center space-x-2 bg-[#101D42] border border-[#2DD4BF]/30 text-[#2DD4BF] hover:bg-[#2DD4BF] hover:text-slate-950 px-4 py-2.5 rounded-xl font-bold text-xs transition-all"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refrescar Supabase</span>
+          <span>Refrescar Alertas</span>
         </button>
       </div>
 
@@ -69,14 +69,14 @@ export default function AlertasPage() {
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-slate-500">
               <ShieldAlert className="w-10 h-10" />
             </div>
-            <h3 className="text-base font-bold text-white">No hay alertas de seguridad en la base de datos</h3>
+            <h3 className="text-base font-bold text-white">No hay alertas de infracción registradas</h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              La tabla <code className="text-[#2DD4BF]">usage_events</code> en Supabase está 100% vacía de infracciones. El sistema está limpio de alertas ficticias.
+              El servidor corporativo se encuentra 100% libre de alertas no autorizadas.
             </p>
           </div>
         ) : (
           <div className="text-sm font-bold text-white">
-            {alertsList.length} Alertas de Infracción en Supabase
+            {alertsList.length} Alertas de Infracción Registradas en la Plataforma
           </div>
         )}
       </div>

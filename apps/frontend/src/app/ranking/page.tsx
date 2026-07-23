@@ -16,15 +16,15 @@ export default function RankingPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('centryx_token');
+    const token = sessionStorage.getItem('centryx_token') || localStorage.getItem('centryx_token');
     if (!token) {
       router.push('/login');
       return;
     }
-    fetchRankingFromSupabase();
+    fetchRankingFromCloud();
   }, [router]);
 
-  const fetchRankingFromSupabase = async () => {
+  const fetchRankingFromCloud = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase.from('daily_focus_scores').select('*').limit(20);
@@ -50,16 +50,16 @@ export default function RankingPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Listado de Honor &amp; Índice de Foco</h1>
-            <p className="text-xs text-slate-400 mt-0.5">Clasificación en tiempo real basada en la tabla Supabase daily_focus_scores</p>
+            <p className="text-xs text-slate-400 mt-0.5">Clasificación en tiempo real basada en la telemetría de uso corporativo Centryx</p>
           </div>
         </div>
 
         <button 
-          onClick={fetchRankingFromSupabase}
+          onClick={fetchRankingFromCloud}
           className="flex items-center space-x-2 bg-[#101D42] border border-[#2DD4BF]/30 text-[#2DD4BF] hover:bg-[#2DD4BF] hover:text-slate-950 px-4 py-2.5 rounded-xl font-bold text-xs transition-all"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refrescar Supabase</span>
+          <span>Refrescar Ranking</span>
         </button>
       </div>
 
@@ -69,14 +69,14 @@ export default function RankingPage() {
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-slate-500">
               <Trophy className="w-10 h-10" />
             </div>
-            <h3 className="text-base font-bold text-white">No hay registros de puntuación de foco en la base de datos</h3>
+            <h3 className="text-base font-bold text-white">No hay registros de puntuación de foco en la plataforma</h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              La tabla <code className="text-[#2DD4BF]">daily_focus_scores</code> en Supabase está 100% vacía. Al acumular uso de apps en sus teléfonos enrolados, el algoritmo generará el ranking automático.
+              El servidor corporativo se encuentra en espera. Al acumular uso de aplicaciones en sus teléfonos enrolados, el algoritmo generará el ranking automático.
             </p>
           </div>
         ) : (
           <div className="text-sm font-bold text-white">
-            {rankingList.length} Registros de Foco en Supabase
+            {rankingList.length} Registros de Foco en la Plataforma
           </div>
         )}
       </div>

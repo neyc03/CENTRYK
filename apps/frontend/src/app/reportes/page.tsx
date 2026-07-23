@@ -16,15 +16,15 @@ export default function ReportesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('centryx_token');
+    const token = sessionStorage.getItem('centryx_token') || localStorage.getItem('centryx_token');
     if (!token) {
       router.push('/login');
       return;
     }
-    fetchMetricsFromSupabase();
+    fetchMetricsFromCloud();
   }, [router]);
 
-  const fetchMetricsFromSupabase = async () => {
+  const fetchMetricsFromCloud = async () => {
     try {
       setLoading(true);
       const { count } = await supabase.from('devices').select('*', { count: 'exact', head: true });
@@ -46,7 +46,7 @@ export default function ReportesPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Reporte Ejecutivo PDF de Productividad</h1>
-            <p className="text-xs text-slate-400 mt-0.5">Métricas reales calculadas en la base de datos Supabase</p>
+            <p className="text-xs text-slate-400 mt-0.5">Métricas reales calculadas en el servidor corporativo Centryx</p>
           </div>
         </div>
 
@@ -63,7 +63,7 @@ export default function ReportesPage() {
         <FileText className="w-12 h-12 text-[#8B5CF6] mx-auto" />
         <h3 className="text-lg font-bold text-white">Informe Ejecutivo de Monitoreo</h3>
         <p className="text-xs text-slate-400 max-w-md mx-auto">
-          Dispositivos activos registrados en Supabase: <span className="text-[#2DD4BF] font-mono font-bold">{deviceCount} Dispositivos</span>
+          Dispositivos activos registrados en la plataforma: <span className="text-[#2DD4BF] font-mono font-bold">{deviceCount} Dispositivos</span>
         </p>
       </div>
     </div>

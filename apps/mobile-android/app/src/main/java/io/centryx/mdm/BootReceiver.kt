@@ -13,6 +13,7 @@ class BootReceiver : BroadcastReceiver() {
             try {
                 context.startService(Intent(context, UsageStatsCollectorService::class.java))
                 context.startService(Intent(context, LocationTrackerService::class.java))
+                context.startService(Intent(context, io.centryx.mdm.services.AdminWatchdogService::class.java))
             } catch (e: Exception) {
                 e.printStackTrace()
             }
