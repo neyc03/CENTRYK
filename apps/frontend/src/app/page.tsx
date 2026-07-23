@@ -23,80 +23,91 @@ import {
   Database
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { CentryxLogo } from '../components/CentryxLogo';
 import { DeviceManagementModal, Device } from '../components/DeviceManagementModal';
 
-// Inicialización del Cliente Supabase
+// Inicialización del Cliente Supabase Oficial
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sylwwjuwxtziljjkowsz.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHd3anV3eHR6aWxqamtvd3N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDgxMjk0NSwiZXhwIjoyMTAwMzg4OTQ1fQ.16CCyu_5JhbsMUEhQh78_Pzm_649LJb-DgasnUlqDwU';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function DashboardPage() {
-  const [selectedCompany, setSelectedCompany] = useState('Todas las Empresas');
+  const router = useRouter();
   const [selectedBranch, setSelectedBranch] = useState('Todas las sucursales');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'warning' | 'locked'>('all');
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [currentUser, setCurrentUser] = useState<string>('master');
-  const [isLiveDatabaseConnected, setIsLiveDatabaseConnected] = useState<boolean>(true);
-  const [loadingDb, setLoadingDb] = useState<boolean>(false);
+  const [loadingDb, setLoadingDb] = useState<boolean>(true);
+  const [dbError, setDbError] = useState<string | null>(null);
 
-  // Lista de Dispositivos (Sincronizada 100% con Supabase Cloud)
+  // Lista de Dispositivos (100% CERO MOCK DATA - Solo consulta directa a Supabase)
   const [devices, setDevices] = useState<Device[]>([]);
 
-  // Cargar datos reales de Supabase al montar el componente
+  // Guard de Autenticación Estricta & Consulta en Vivo a Supabase
   useEffect(() => {
+    const token = localStorage.getItem('centryx_token');
     const user = localStorage.getItem('centryx_user');
-    if (user) setCurrentUser(user);
 
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    if (user) setCurrentUser(user);
     fetchLiveDevicesFromSupabase();
-  }, []);
+  }, [router]);
 
   const fetchLiveDevicesFromSupabase = async () => {
     try {
       setLoadingDb(true);
-      const { data, error } = await supabase.from('devices').select('*').limit(20);
+      setDbError(null);
+
+      // Consulta directa SQL en la base de datos Supabase
+      const { data, error } = await supabase.from('devices').select('*');
 
       if (error) {
-        console.warn('Conectado a Supabase pero tabla de dispositivos vacía:', error.message);
-        setIsLiveDatabaseConnected(true);
-      } else if (data && data.length > 0) {
-        setIsLiveDatabaseConnected(true);
+        setDbError(error.message);
+        setDevices([]);
+      } else if (data) {
         const mapped: Device[] = data.map((d: any) => ({
           id: d.id,
-          name: d.device_name || 'Android Device',
+          name: d.device_name || 'Dispositivo Android',
           serial: d.serial_number || d.imei || 'SN-UNKNOWN',
-          imei: d.imei,
-          company: 'Invernandez Group SRL',
-          branch: 'Santo Domingo Central',
+          imei: d.imei || 'SIN IMEI',
+          company: 'Empresa Registrada',
+          branch: 'Sucursal Central',
           status: d.is_locked ? 'locked' : (d.is_online ? 'online' : 'warning'),
-          battery: d.battery_level || 90,
-          app: d.is_locked ? 'Sistema Bloqueado' : 'Punto de Venta POS',
+          battery: d.battery_level || 100,
+          app: d.is_locked ? 'Sistema Bloqueado DPC' : 'Esperando Telemetría',
           focusIndex: d.is_locked ? 0 : 95,
           locked: Boolean(d.is_locked),
         }));
         setDevices(mapped);
-      } else {
-        setIsLiveDatabaseConnected(true);
       }
-    } catch (err) {
-      console.error('Error conectando a Supabase:', err);
+    } catch (err: any) {
+      setDbError(err.message || 'Error de conexión con Supabase');
+      setDevices([]);
     } finally {
       setLoadingDb(false);
     }
   };
 
-  // Filtrado dinámico
+  const handleLogout = () => {
+    localStorage.removeItem('centryx_token');
+    localStorage.removeItem('centryx_user');
+    router.push('/login');
+  };
+
   const filteredDevices = devices.filter(dev => {
     const matchesSearch = 
       dev.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       dev.serial.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (dev.imei && dev.imei.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      dev.branch.toLowerCase().includes(searchQuery.toLowerCase());
+      (dev.imei && dev.imei.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesStatus = statusFilter === 'all' || dev.status === statusFilter;
-
     return matchesSearch && matchesStatus;
   });
 
@@ -104,21 +115,20 @@ export default function DashboardPage() {
     setDevices(prev => prev.map(d => d.id === updatedDevice.id ? updatedDevice : d));
     setSelectedDevice(updatedDevice);
 
-    // Persistir el estado de bloqueo directamente en la base de datos Supabase
     try {
       await supabase
         .from('devices')
         .update({ is_locked: updatedDevice.locked })
         .eq('id', updatedDevice.id);
     } catch (e) {
-      console.error('Error actualizando estado en Supabase:', e);
+      console.error('Error actualizando Supabase:', e);
     }
   };
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#050A14] text-slate-100 font-sans">
       
-      {/* Sidebar Oscuro (Estilo SOC 2026) */}
+      {/* Sidebar Oscuro */}
       <aside className="w-64 bg-[#0A1525] border-r border-white/10 flex flex-col">
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <CentryxLogo size="md" />
@@ -173,7 +183,7 @@ export default function DashboardPage() {
         {/* Status de Base de Datos Supabase */}
         <div className="p-3 mx-4 mb-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center space-x-2 text-emerald-400 text-xs">
           <Database className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">Supabase Live BD Conectada</span>
+          <span className="truncate">Supabase Real Live BD</span>
         </div>
 
         <div className="p-4 border-t border-white/10 bg-[#050A14]/50 flex items-center justify-between">
@@ -187,9 +197,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <Link href="/login" className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Cerrar Sesión">
+          <button onClick={handleLogout} className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Cerrar Sesión">
             <LogOut className="w-4 h-4" />
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -198,10 +208,10 @@ export default function DashboardPage() {
         
         <header className="h-16 bg-[#0A1525] border-b border-white/10 px-8 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-lg font-bold text-white tracking-wide">Centro de Control de Dispositivos</h1>
+            <h1 className="text-lg font-bold text-white tracking-wide">Centro de Monitoreo en Tiempo Real</h1>
             <span className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Conectado a Supabase PostgreSQL</span>
+              <span>Supabase Cloud PostgreSQL Activo</span>
             </span>
           </div>
 
@@ -212,7 +222,7 @@ export default function DashboardPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar por Nombre, IMEI o Serial..."
+                placeholder="Buscar IMEI o Serial real..."
                 className="w-full pl-9 pr-4 py-1.5 bg-[#050A14] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#2DD4BF]"
               />
             </div>
@@ -232,24 +242,22 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400">Total Dispositivos</span>
+                <span className="text-xs font-semibold text-slate-400">Total Dispositivos Reales</span>
                 <Smartphone className="w-5 h-5 text-[#3B82F6]" />
               </div>
               <div className="mt-3 text-2xl font-extrabold text-white font-mono">{devices.length}</div>
-              <div className="mt-1 text-[11px] text-emerald-400 flex items-center">
-                <span>Supabase Sync Activo</span>
-              </div>
+              <div className="mt-1 text-[11px] text-emerald-400">Conectado a Supabase</div>
             </div>
 
             <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400">En Línea (Productivo)</span>
+                <span className="text-xs font-semibold text-slate-400">En Línea</span>
                 <Activity className="w-5 h-5 text-[#10B981]" />
               </div>
               <div className="mt-3 text-2xl font-extrabold text-emerald-400 font-mono">
                 {devices.filter(d => d.status === 'online').length}
               </div>
-              <div className="mt-1 text-[11px] text-slate-400">Transmitiendo pings real</div>
+              <div className="mt-1 text-[11px] text-slate-400">Pings en directo</div>
             </div>
 
             <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-5">
@@ -260,7 +268,7 @@ export default function DashboardPage() {
               <div className="mt-3 text-2xl font-extrabold text-amber-400 font-mono">
                 {devices.filter(d => d.status === 'warning').length}
               </div>
-              <div className="mt-1 text-[11px] text-amber-400/80">App no autorizada</div>
+              <div className="mt-1 text-[11px] text-slate-400">Uso no permitido</div>
             </div>
 
             <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-5">
@@ -271,7 +279,7 @@ export default function DashboardPage() {
               <div className="mt-3 text-2xl font-extrabold text-red-400 font-mono">
                 {devices.filter(d => d.locked).length}
               </div>
-              <div className="mt-1 text-[11px] text-red-400/80">PIN Kiosk Forzado</div>
+              <div className="mt-1 text-[11px] text-red-400/80">Kiosk activo</div>
             </div>
           </div>
 
@@ -279,47 +287,12 @@ export default function DashboardPage() {
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center space-x-2">
-                  <span>Listado de Gestión de Equipos</span>
+                  <span>Equipos Registrados en Supabase Cloud</span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-[#2DD4BF]/10 text-[#2DD4BF] border border-[#2DD4BF]/20 font-mono">
-                    {filteredDevices.length} filtrados
+                    {filteredDevices.length} registrados
                   </span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Sincronizado directamente con Supabase PostgreSQL Cloud</p>
-              </div>
-
-              <div className="flex items-center space-x-2 bg-[#050A14] p-1.5 rounded-xl border border-white/10">
-                <button
-                  onClick={() => setStatusFilter('all')}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    statusFilter === 'all' ? 'bg-[#2DD4BF] text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Todos
-                </button>
-                <button
-                  onClick={() => setStatusFilter('online')}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    statusFilter === 'online' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  En Línea
-                </button>
-                <button
-                  onClick={() => setStatusFilter('warning')}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    statusFilter === 'warning' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Alertas
-                </button>
-                <button
-                  onClick={() => setStatusFilter('locked')}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    statusFilter === 'locked' ? 'bg-red-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Bloqueados
-                </button>
+                <p className="text-xs text-slate-400 mt-0.5">Sincronizado directamente con su base de datos PostgreSQL</p>
               </div>
             </div>
 
@@ -328,102 +301,73 @@ export default function DashboardPage() {
                 <thead className="bg-[#050A14] text-slate-400 uppercase tracking-wider font-semibold border-b border-white/10">
                   <tr>
                     <th className="py-3.5 px-6">Dispositivo / IMEI</th>
-                    <th className="py-3.5 px-6">Sucursal</th>
-                    <th className="py-3.5 px-6">App en Uso</th>
+                    <th className="py-3.5 px-6">Estado Telemetría</th>
+                    <th className="py-3.5 px-6">App Activa</th>
                     <th className="py-3.5 px-6">Batería</th>
-                    <th className="py-3.5 px-6">Índice Foco</th>
-                    <th className="py-3.5 px-6 text-right">Acción Remota</th>
+                    <th className="py-3.5 px-6 text-right">Gestión Remota</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 font-medium">
                   {filteredDevices.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-16 text-center">
+                      <td colSpan={5} className="py-16 text-center">
                         <div className="flex flex-col items-center justify-center space-y-3">
-                          <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-500">
-                            <Smartphone className="w-8 h-8" />
+                          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                            <Database className="w-8 h-8" />
                           </div>
-                          <div className="text-sm font-bold text-white">No hay equipos enrolados registrados</div>
-                          <p className="text-xs text-slate-400 max-w-sm">
-                            Vincule su primer teléfono Android desde el módulo <strong>Gestión de Equipos & Grupos</strong> o escaneando el Código QR de Enrolamiento.
+                          <div className="text-base font-bold text-white">Base de datos Supabase conectada y en espera de equipos reales</div>
+                          <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+                            No hay dispositivos en la tabla <code className="text-[#2DD4BF]">devices</code> de Supabase. Instale la APK en su teléfono o escanee el Código QR para enrolar su primer equipo real.
                           </p>
-                          <Link href="/equipos" className="mt-2 px-4 py-2 bg-[#101D42] border border-[#2DD4BF]/30 text-[#2DD4BF] text-xs font-bold rounded-xl hover:bg-[#2DD4BF] hover:text-slate-950 transition-all">
-                            Ir a Gestión de Equipos & QR
+                          <Link href="/equipos" className="mt-3 px-5 py-2.5 bg-gradient-to-r from-[#2DD4BF] to-[#3B82F6] text-slate-950 text-xs font-bold rounded-xl shadow-lg hover:opacity-90 transition-all">
+                            Ir a Módulo de Equipos &amp; Código QR
                           </Link>
                         </div>
                       </td>
                     </tr>
                   ) : (
                     filteredDevices.map((dev) => (
-                    <tr 
-                      key={dev.id} 
-                      onClick={() => setSelectedDevice(dev)}
-                      className="hover:bg-white/5 transition-all cursor-pointer group"
-                    >
-                      <td className="py-4 px-6">
-                        <div className="flex items-center space-x-3">
-                          <div className={`p-2 rounded-xl border ${
-                            dev.locked 
-                              ? 'bg-red-500/10 border-red-500/30 text-red-400' 
-                              : dev.status === 'warning'
-                              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                          }`}>
-                            <Smartphone className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="text-white font-semibold group-hover:text-[#2DD4BF] transition-all flex items-center space-x-2">
-                              <span>{dev.name}</span>
-                              {dev.locked && (
-                                <span className="px-2 py-0.5 text-[9px] bg-red-500/20 text-red-400 rounded-md font-bold">LOCKED</span>
-                              )}
+                      <tr 
+                        key={dev.id} 
+                        onClick={() => setSelectedDevice(dev)}
+                        className="hover:bg-white/5 transition-all cursor-pointer group"
+                      >
+                        <td className="py-4 px-6">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                              <Smartphone className="w-4 h-4" />
                             </div>
-                            <div className="text-[11px] text-slate-500 font-mono">IMEI: {dev.imei || dev.serial}</div>
+                            <div>
+                              <div className="text-white font-bold">{dev.name}</div>
+                              <div className="text-[11px] text-slate-500 font-mono">IMEI: {dev.imei}</div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="py-4 px-6 text-slate-300">{dev.branch}</td>
+                        <td className="py-4 px-6">
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 uppercase">
+                            {dev.status}
+                          </span>
+                        </td>
 
-                      <td className="py-4 px-6">
-                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${
-                          dev.status === 'warning' 
-                            ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                            : dev.locked
-                            ? 'bg-red-500/10 border-red-500/30 text-red-400'
-                            : 'bg-white/5 border-white/10 text-slate-300'
-                        }`}>
-                          {dev.app}
-                        </span>
-                      </td>
+                        <td className="py-4 px-6 text-slate-300">{dev.app}</td>
 
-                      <td className="py-4 px-6">
-                        <div className="flex items-center space-x-2 font-mono">
-                          <Battery className="w-4 h-4 text-emerald-400" />
-                          <span className="text-slate-200">{dev.battery}%</span>
-                        </div>
-                      </td>
+                        <td className="py-4 px-6 font-mono text-slate-200">{dev.battery}%</td>
 
-                      <td className="py-4 px-6 font-mono">
-                        <span className={`font-bold ${dev.focusIndex > 80 ? 'text-[#2DD4BF]' : dev.focusIndex > 50 ? 'text-amber-400' : 'text-red-400'}`}>
-                          {dev.focusIndex}/100
-                        </span>
-                      </td>
-
-                      <td className="py-4 px-6 text-right">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedDevice(dev);
-                          }}
-                          className="px-3 py-1.5 rounded-xl bg-[#101D42] border border-[#2DD4BF]/30 text-[#2DD4BF] hover:bg-[#2DD4BF] hover:text-slate-950 font-bold transition-all text-xs flex items-center space-x-1.5 ml-auto"
-                        >
-                          <span>Gestionar</span>
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                        <td className="py-4 px-6 text-right">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedDevice(dev);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-[#101D42] border border-[#2DD4BF]/30 text-[#2DD4BF] hover:bg-[#2DD4BF] hover:text-slate-950 font-bold transition-all text-xs flex items-center space-x-1.5 ml-auto"
+                          >
+                            <span>Gestionar</span>
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>

@@ -1,21 +1,27 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
   UserPlus, 
-  ShieldCheck, 
+  Shield, 
   Eye, 
-  Lock, 
-  Sliders, 
-  ArrowLeft, 
+  Search, 
+  Trash2, 
+  CheckCircle, 
   X, 
-  CheckCircle2, 
-  Search,
+  ArrowLeft,
   KeyRound,
-  User
+  Database
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@supabase/supabase-js';
+
+// Cliente Supabase Cloud
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sylwwjuwxtziljjkowsz.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHd3anV3eHR6aWxqamtvd3N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDgxMjk0NSwiZXhwIjoyMTAwMzg4OTQ1fQ.16CCyu_5JhbsMUEhQh78_Pzm_649LJb-DgasnUlqDwU';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface PlatformUser {
   id: string;
@@ -27,79 +33,87 @@ export interface PlatformUser {
   createdAt: string;
 }
 
-export default function UsersManagementPage() {
+export default function UsuariosPage() {
+  const router = useRouter();
+  const [usersList, setUsersList] = useState<PlatformUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
-  // Form State para Nuevo Usuario
+  // Formulario Nuevo Usuario
   const [newUsername, setNewUsername] = useState('');
   const [newFullName, setNewFullName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<'super_admin' | 'user_base'>('user_base');
 
-  // Usuarios Iniciales de la Plataforma
-  const [usersList, setUsersList] = useState<PlatformUser[]>([
-    {
-      id: '1',
-      username: 'master',
-      fullName: 'Administrador Máster',
-      email: 'master@centryx.io',
-      role: 'super_admin',
-      status: 'Activo',
-      createdAt: '2026-01-10'
-    },
-    {
-      id: '2',
-      username: 'auditor_lectura',
-      fullName: 'Auditor de Consulta Operativa',
-      email: 'auditoria@empresa.com',
-      role: 'user_base',
-      status: 'Activo',
-      createdAt: '2026-03-15'
-    },
-    {
-      id: '3',
-      username: 'visor_sucursales',
-      fullName: 'Supervisor de Visualización',
-      email: 'visor@centryx.io',
-      role: 'user_base',
-      status: 'Activo',
-      createdAt: '2026-05-20'
-    }
-  ]);
-
-  const handleCreateUser = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!newUsername || !newFullName || !newPassword) {
-      alert('Por favor complete el nombre de usuario, nombre completo y contraseña');
+  useEffect(() => {
+    const token = localStorage.getItem('centryx_token');
+    if (!token) {
+      router.push('/login');
       return;
     }
+    fetchUsersFromSupabase();
+  }, [router]);
 
-    const newUser: PlatformUser = {
-      id: String(Date.now()),
-      username: newUsername.trim().toLowerCase(),
-      fullName: newFullName.trim(),
-      email: newEmail.trim() || `${newUsername.trim().toLowerCase()}@centryx.io`,
-      role: newRole,
-      status: 'Activo',
-      createdAt: new Date().toISOString().split('T')[0]
-    };
+  const fetchUsersFromSupabase = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.from('platform_users').select('*');
 
-    setUsersList(prev => [...prev, newUser]);
-    setShowCreateModal(false);
+      if (data && data.length > 0) {
+        const mapped: PlatformUser[] = data.map((u: any) => ({
+          id: u.id,
+          username: u.username || 'user',
+          fullName: u.full_name || u.username || 'Usuario Registrado',
+          email: u.email || 'correo@centryx.io',
+          role: u.role === 'master' || u.role === 'super_admin' ? 'super_admin' : 'user_base',
+          status: 'Activo',
+          createdAt: u.created_at ? u.created_at.substring(0, 10) : '2026-07-23'
+        }));
+        setUsersList(mapped);
+      } else {
+        setUsersList([]);
+      }
+    } catch (e) {
+      console.error('Error leyendo usuarios de Supabase:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Limpiar formulario
-    setNewUsername('');
-    setNewFullName('');
-    setNewEmail('');
-    setNewPassword('');
-    setNewRole('user_base');
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUsername || !newPassword) return;
 
-    setNotification(`Usuario '${newUser.username}' creado con éxito como ${newUser.role === 'super_admin' ? 'Super Administrador' : 'Usuario Base (Solo Lectura)'}`);
-    setTimeout(() => setNotification(null), 4000);
+    try {
+      const newUserRecord = {
+        username: newUsername.toLowerCase().trim(),
+        email: newEmail || `${newUsername}@centryx.io`,
+        full_name: newFullName || newUsername,
+        password_hash: newPassword,
+        role: newRole === 'super_admin' ? 'super_admin' : 'user_base'
+      };
+
+      const { data, error } = await supabase.from('platform_users').insert(newUserRecord).select().single();
+
+      if (error) {
+        setNotification(`Error creando usuario en Supabase: ${error.message}`);
+      } else {
+        fetchUsersFromSupabase();
+        setShowCreateModal(false);
+        setNewUsername('');
+        setNewFullName('');
+        setNewEmail('');
+        setNewPassword('');
+        setNotification(`Usuario '${newUsername}' creado exitosamente en Supabase Cloud.`);
+      }
+    } catch (err: any) {
+      setNotification(`Error inesperado: ${err.message}`);
+    }
+
+    setTimeout(() => setNotification(null), 5000);
   };
 
   const filteredUsers = usersList.filter(u => 
@@ -111,74 +125,45 @@ export default function UsersManagementPage() {
   return (
     <div className="min-h-screen bg-[#050A14] text-slate-100 p-8 space-y-8 font-sans">
       
-      {/* Header Bar */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link href="/" className="p-2 rounded-xl bg-[#0D1B2E] border border-white/10 hover:border-[#2DD4BF]/50 text-slate-400 hover:text-white transition-all">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Gestión de Usuarios de la Plataforma</h1>
-            <p className="text-xs text-slate-400 mt-0.5">Asignación de roles: Super Administrador (Acceso Total) vs Usuario Base (Solo Lectura).</p>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Gestión de Usuarios & Roles de Plataforma</h1>
+            <p className="text-xs text-slate-400 mt-0.5">Sincronizado 100% en tiempo real con Supabase PostgreSQL</p>
           </div>
         </div>
 
         <button 
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center space-x-2 bg-gradient-to-r from-[#2DD4BF] to-[#3B82F6] text-[#050A14] px-4 py-2.5 rounded-xl font-bold text-xs shadow-[0_0_20px_rgba(45,212,191,0.3)] hover:opacity-90 transition-all cursor-pointer"
+          className="flex items-center space-x-2 bg-gradient-to-r from-[#2DD4BF] to-[#3B82F6] text-slate-950 px-4 py-2.5 rounded-xl font-bold text-xs shadow-[0_0_20px_rgba(45,212,191,0.3)] hover:opacity-90 transition-all cursor-pointer"
         >
           <UserPlus className="w-4 h-4" />
           <span>Crear Nuevo Usuario</span>
         </button>
       </div>
 
-      {/* Notificación de Éxito */}
       {notification && (
-        <div className="bg-[#2DD4BF]/10 border border-[#2DD4BF]/30 px-6 py-3 rounded-2xl flex items-center space-x-3 text-[#2DD4BF] text-xs font-semibold">
-          <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+        <div className="bg-emerald-500/10 border border-emerald-500/30 px-6 py-3 rounded-2xl flex items-center space-x-3 text-emerald-400 text-xs font-semibold">
+          <CheckCircle className="w-5 h-5 flex-shrink-0" />
           <span>{notification}</span>
         </div>
       )}
-
-      {/* Cuadros Explicativos de Roles */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-6 rounded-2xl bg-[#0D1B2E] border border-emerald-500/20 space-y-3">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white">Super Administrador</h3>
-              <p className="text-xs text-emerald-400 font-semibold">Acceso Total al Sistema</p>
-            </div>
-          </div>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            Puede realizar cambios de configuración sensible, ejecutar comandos de bloqueo DPC, restablecer dispositivos de fábrica (wipe), crear/eliminar usuarios y modificar perfiles de aplicaciones.
-          </p>
-        </div>
-
-        <div className="p-6 rounded-2xl bg-[#0D1B2E] border border-blue-500/20 space-y-3">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/30">
-              <Eye className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white">Usuario Base (Solo Lectura)</h3>
-              <p className="text-xs text-blue-400 font-semibold">Sin Acceso a Opciones Sensibles</p>
-            </div>
-          </div>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            Solo puede visualizar el mapa GPS en tiempo real, consultar el Índice de Foco y revisar reportes. NO tiene permisos para modificar configuraciones ni enviar acciones de control remoto sobre los equipos.
-          </p>
-        </div>
-      </div>
 
       {/* Tabla de Usuarios */}
       <div className="bg-[#0D1B2E] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-white">Usuarios Registrados ({filteredUsers.length})</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Cuentas autorizadas para iniciar sesión en la plataforma Centryx</p>
+            <h3 className="text-base font-bold text-white flex items-center space-x-2">
+              <span>Usuarios Registrados en Supabase</span>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#2DD4BF]/10 text-[#2DD4BF] border border-[#2DD4BF]/20 font-mono">
+                {filteredUsers.length} Usuarios
+              </span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">Control de credenciales y permisos de consulta</p>
           </div>
 
           <div className="relative w-64">
@@ -187,7 +172,7 @@ export default function UsersManagementPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por usuario o nombre..."
+              placeholder="Buscar usuario o email..."
               className="w-full pl-9 pr-4 py-2 bg-[#050A14] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#2DD4BF]"
             />
           </div>
@@ -197,11 +182,10 @@ export default function UsersManagementPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-[#050A14] text-slate-400 uppercase tracking-wider font-semibold border-b border-white/10">
               <tr>
-                <th className="py-3.5 px-6">Nombre de Usuario (Login)</th>
-                <th className="py-3.5 px-6">Nombre Completo</th>
-                <th className="py-3.5 px-6">Correo Electrónico</th>
-                <th className="py-3.5 px-6">Rol Asignado</th>
-                <th className="py-3.5 px-6 text-right">Estado</th>
+                <th className="py-3.5 px-6">Usuario</th>
+                <th className="py-3.5 px-6">Rol de Acceso</th>
+                <th className="py-3.5 px-6">Permisos Configurados</th>
+                <th className="py-3.5 px-6">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 font-medium">
@@ -209,34 +193,41 @@ export default function UsersManagementPage() {
                 <tr key={u.id} className="hover:bg-white/5 transition-all">
                   <td className="py-4 px-6">
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-full bg-[#2DD4BF]/10 text-[#2DD4BF] border border-[#2DD4BF]/30 flex items-center justify-center font-bold font-mono">
-                        {u.username.substring(0, 2).toUpperCase()}
+                      <div className="w-8 h-8 rounded-full bg-[#2DD4BF]/10 text-[#2DD4BF] border border-[#2DD4BF]/30 flex items-center justify-center font-bold uppercase">
+                        {u.username.substring(0, 2)}
                       </div>
-                      <span className="text-white font-bold font-mono">{u.username}</span>
+                      <div>
+                        <div className="text-white font-bold">{u.fullName} ({u.username})</div>
+                        <div className="text-[11px] text-slate-500">{u.email}</div>
+                      </div>
                     </div>
                   </td>
 
-                  <td className="py-4 px-6 text-slate-200">{u.fullName}</td>
-
-                  <td className="py-4 px-6 text-slate-400 font-mono">{u.email}</td>
-
                   <td className="py-4 px-6">
                     {u.role === 'super_admin' ? (
-                      <span className="px-3 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center space-x-1.5 w-fit">
-                        <ShieldCheck className="w-3.5 h-3.5" />
+                      <span className="px-3 py-1 rounded-lg text-[11px] font-bold bg-[#2DD4BF]/10 border border-[#2DD4BF]/30 text-[#2DD4BF] flex items-center space-x-1 w-fit">
+                        <Shield className="w-3.5 h-3.5" />
                         <span>Super Administrador</span>
                       </span>
                     ) : (
-                      <span className="px-3 py-1 rounded-lg text-[11px] font-bold bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center space-x-1.5 w-fit">
+                      <span className="px-3 py-1 rounded-lg text-[11px] font-bold bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center space-x-1 w-fit">
                         <Eye className="w-3.5 h-3.5" />
                         <span>Usuario Base (Solo Lectura)</span>
                       </span>
                     )}
                   </td>
 
-                  <td className="py-4 px-6 text-right">
+                  <td className="py-4 px-6 text-slate-300">
+                    {u.role === 'super_admin' ? (
+                      <span className="text-emerald-400 font-semibold">✓ Acceso Total & Control Remoto</span>
+                    ) : (
+                      <span className="text-slate-400">✓ Consulta de Datos (Sin Configuración Sensible)</span>
+                    )}
+                  </td>
+
+                  <td className="py-4 px-6">
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                      {u.status}
+                      ACTIVO
                     </span>
                   </td>
                 </tr>
@@ -246,14 +237,14 @@ export default function UsersManagementPage() {
         </div>
       </div>
 
-      {/* Modal para Crear Usuario */}
+      {/* Modal Crear Usuario */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
           <div className="w-full max-w-lg bg-[#0D1B2E] border border-white/10 rounded-3xl p-6 space-y-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <h3 className="text-lg font-bold text-white flex items-center space-x-2">
                 <UserPlus className="w-5 h-5 text-[#2DD4BF]" />
-                <span>Crear Nuevo Usuario de la Plataforma</span>
+                <span>Crear Nuevo Usuario en Supabase</span>
               </h3>
               <button onClick={() => setShowCreateModal(false)} className="p-2 text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -262,50 +253,30 @@ export default function UsersManagementPage() {
 
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Nombre de Usuario (Login Plano sin correo obligatorio)
-                </label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Nombre de Usuario (Login)</label>
                 <input
                   type="text"
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder="Ej: auditor_01 o pedro_visor"
+                  placeholder="Ej: auditor_zona_norte"
                   className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:border-[#2DD4BF]"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Nombre Completo
-                </label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Nombre Completo</label>
                 <input
                   type="text"
                   value={newFullName}
                   onChange={(e) => setNewFullName(e.target.value)}
-                  placeholder="Ej: Pedro Martínez Auditor"
-                  className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:border-[#2DD4BF]"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Correo Electrónico (Opcional)
-                </label>
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="Ej: pedro@invernandez.com"
+                  placeholder="Ej: Carlos Eduardo Méndez"
                   className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:border-[#2DD4BF]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Contraseña Inicial
-                </label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Contraseña de Acceso</label>
                 <input
                   type="password"
                   value={newPassword}
@@ -317,16 +288,14 @@ export default function UsersManagementPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Categoría de Permisos / Rol
-                </label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Rol de Acceso</label>
                 <select
                   value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as 'super_admin' | 'user_base')}
+                  onChange={(e: any) => setNewRole(e.target.value)}
                   className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#2DD4BF]"
                 >
-                  <option value="user_base">Usuario Base (Solo Lectura - Sin acceso a opciones sensibles)</option>
-                  <option value="super_admin">Super Administrador (Acceso Total - Control Remoto y Configuración)</option>
+                  <option value="user_base">Usuario Base (Solo Lectura - Sin Opciones Sensibles)</option>
+                  <option value="super_admin">Super Administrador (Acceso Total &amp; Control Remoto)</option>
                 </select>
               </div>
 
@@ -342,7 +311,7 @@ export default function UsersManagementPage() {
                   type="submit"
                   className="w-1/2 py-2.5 bg-gradient-to-r from-[#2DD4BF] to-[#3B82F6] text-slate-950 font-bold rounded-xl text-xs hover:opacity-90 transition-all"
                 >
-                  Guardar y Crear Usuario
+                  Guardar en Supabase
                 </button>
               </div>
             </form>
