@@ -43,7 +43,6 @@ export default function DashboardPage() {
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <CentryxLogo size="md" />
         </div>
-iv>
 
         {/* Navigation Menu */}
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
