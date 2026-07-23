@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp"
+    android:background="#050A14">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="CENTRYK MDM"
+        android:textColor="#2DD4BF"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Activación y Enrolamiento de Supervisión DPC"
+        android:textColor="#94A3B8"
+        android:textSize="12sp"
+        android:layout_marginBottom="32dp" />
+
+    <EditText
+        android:id="@+id/etUsername"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:hint="Usuario Administrador (ej: master)"
+        android:textColorHint="#64748B"
+        android:textColor="#FFFFFF"
+        android:background="#0D1B2E"
+        android:paddingHorizontal="16dp"
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/etPassword"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:hint="Contraseña de Administrador"
+        android:inputType="textPassword"
+        android:textColorHint="#64748B"
+        android:textColor="#FFFFFF"
+        android:background="#0D1B2E"
+        android:paddingHorizontal="16dp"
+        android:layout_marginBottom="24dp" />
+
+    <Button
+        android:id="@+id/btnLogin"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:text="Autenticar e Iniciar Enrolamiento"
+        android:textColor="#050A14"
+        android:textStyle="bold"
+        android:backgroundTint="#2DD4BF" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:layout_marginTop="16dp" />
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#94A3B8"
+        android:textSize="12sp"
+        android:layout_marginTop="16dp"
+        android:gravity="center" />
+
+</LinearLayout>

@@ -13,7 +13,7 @@
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
-        android:label="Centryx MDM"
+        android:label="Centryx"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Material3.Dark">
@@ -26,6 +26,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".PermissionsActivity"
+            android:exported="false" />
 
         <!-- Device Admin Receiver for Device Owner Mode -->
         <receiver
