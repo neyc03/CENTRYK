@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   Smartphone, 
@@ -16,30 +16,62 @@ import {
   Battery, 
   RefreshCw,
   Sliders,
-  Award
+  Award,
+  Filter,
+  LogOut,
+  ChevronRight,
+  Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 import { CentryxLogo } from '../components/CentryxLogo';
+import { DeviceManagementModal, Device } from '../components/DeviceManagementModal';
 
 export default function DashboardPage() {
   const [selectedCompany, setSelectedCompany] = useState('Invernandez Group');
   const [selectedBranch, setSelectedBranch] = useState('Todas las sucursales');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'warning' | 'locked'>('all');
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [currentUser, setCurrentUser] = useState<string>('master');
 
-  // Datos demostrativos de telemetría en tiempo real
-  const mockDevices = [
-    { id: '1', name: 'Galaxy Tab A9 (Caja 01)', serial: 'SN-99821-A', company: 'Invernandez SRL', branch: 'Santo Domingo Central', status: 'online', battery: 94, app: 'Punto de Venta POS', focusIndex: 98, locked: false },
-    { id: '2', name: 'Galaxy A15 (Logística #04)', serial: 'SN-88412-B', company: 'Invernandez SRL', branch: 'Santiago Norte', status: 'online', battery: 78, app: 'Waze GPS Navigation', focusIndex: 94, locked: false },
-    { id: '3', name: 'Nokia G42 (Supervisión)', serial: 'SN-77301-C', company: 'Invernandez SRL', branch: 'La Vega Central', status: 'warning', battery: 45, app: 'YouTube (No Permitido)', focusIndex: 62, locked: false },
-    { id: '4', name: 'Galaxy Tab A9 (Caja 02)', serial: 'SN-99822-D', company: 'Invernandez SRL', branch: 'Santo Domingo Central', status: 'online', battery: 88, app: 'Punto de Venta POS', focusIndex: 99, locked: false },
-    { id: '5', name: 'Galaxy A05 (Entregas #12)', serial: 'SN-55210-E', company: 'Invernandez SRL', branch: 'Puerto Plata', status: 'locked', battery: 12, app: 'Sistema Bloqueado', focusIndex: 0, locked: true },
-  ];
+  useEffect(() => {
+    const user = localStorage.getItem('centryx_user');
+    if (user) setCurrentUser(user);
+  }, []);
+
+  // Lista inicial de Dispositivos Corporativos
+  const [devices, setDevices] = useState<Device[]>([
+    { id: '1', name: 'Galaxy Tab A9 (Caja 01)', serial: 'SN-99821-A', imei: '358992109281201', company: 'Invernandez SRL', branch: 'Santo Domingo Central', status: 'online', battery: 94, app: 'Punto de Venta POS', focusIndex: 98, locked: false },
+    { id: '2', name: 'Galaxy A15 (Logística #04)', serial: 'SN-88412-B', imei: '358992109281202', company: 'Invernandez SRL', branch: 'Santiago Norte', status: 'online', battery: 78, app: 'Waze GPS Navigation', focusIndex: 94, locked: false },
+    { id: '3', name: 'Nokia G42 (Supervisión)', serial: 'SN-77301-C', imei: '358992109281203', company: 'Invernandez SRL', branch: 'La Vega Central', status: 'warning', battery: 45, app: 'YouTube (No Permitido)', focusIndex: 62, locked: false },
+    { id: '4', name: 'Galaxy Tab A9 (Caja 02)', serial: 'SN-99822-D', imei: '358992109281204', company: 'Invernandez SRL', branch: 'Santo Domingo Central', status: 'online', battery: 88, app: 'Punto de Venta POS', focusIndex: 99, locked: false },
+    { id: '5', name: 'Galaxy A05 (Entregas #12)', serial: 'SN-55210-E', imei: '358992109281205', company: 'Invernandez SRL', branch: 'Puerto Plata', status: 'locked', battery: 12, app: 'Sistema Bloqueado', focusIndex: 0, locked: true },
+  ]);
+
+  // Filtrado dinámico por búsqueda y por estado
+  const filteredDevices = devices.filter(dev => {
+    const matchesSearch = 
+      dev.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      dev.serial.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (dev.imei && dev.imei.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      dev.branch.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus = statusFilter === 'all' || dev.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const handleUpdateDevice = (updatedDevice: Device) => {
+    setDevices(prev => prev.map(d => d.id === updatedDevice.id ? updatedDevice : d));
+    setSelectedDevice(updatedDevice);
+  };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#050A14] text-slate-100">
+    <div className="flex h-screen overflow-hidden bg-[#050A14] text-slate-100 font-sans">
       
       {/* Sidebar Oscuro (Estilo SOC 2026) */}
       <aside className="w-64 bg-[#0A1525] border-r border-white/10 flex flex-col">
-        {/* Brand Header con Nuevo Logo Modernizado */}
+        {/* Brand Header */}
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <CentryxLogo size="md" />
         </div>
@@ -59,242 +91,257 @@ export default function DashboardPage() {
           </Link>
 
           <Link href="/ranking" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-            <Award className="w-5 h-5 text-[#FACC15]" />
-            <span>Índice de Foco & Ranking</span>
+            <Award className="w-5 h-5 text-[#F59E0B]" />
+            <span>Listado de Honor</span>
           </Link>
 
           <Link href="/alertas" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-            <AlertTriangle className="w-5 h-5 text-[#F97316]" />
-            <span>Alertas & Anomalías</span>
+            <AlertTriangle className="w-5 h-5 text-[#EF4444]" />
+            <span>Alertas de Seguridad</span>
+          </Link>
+
+          <div className="pt-6 px-3 pb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Administración</div>
+
+          <Link href="/estructura" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+            <Building2 className="w-5 h-5 text-[#10B981]" />
+            <span>Multi-Tenant & QR</span>
           </Link>
 
           <Link href="/reportes" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-            <TrendingUp className="w-5 h-5 text-[#10B981]" />
-            <span>Reportes PDF Semanales</span>
-          </Link>
-
-          <div className="pt-6 px-3 pb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Estructura & Config</div>
-
-          <Link href="/estructura" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-            <Building2 className="w-5 h-5" />
-            <span>Empresas & Sucursales</span>
+            <TrendingUp className="w-5 h-5 text-[#8B5CF6]" />
+            <span>Reportes Ejecutivo PDF</span>
           </Link>
         </nav>
 
-
-        {/* Current Tenant Footer */}
-        <div className="p-4 border-t border-white/10 bg-[#050A14]/50">
+        {/* Footer del User Profile */}
+        <div className="p-4 border-t border-white/10 bg-[#050A14]/50 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-full bg-[#101D42] border border-[#2DD4BF]/40 flex items-center justify-center font-bold text-xs text-[#2DD4BF]">
-              M
+            <div className="w-8 h-8 rounded-full bg-[#2DD4BF]/20 border border-[#2DD4BF]/40 flex items-center justify-center text-[#2DD4BF] font-bold text-xs uppercase">
+              {currentUser.substring(0, 2)}
             </div>
-            <div className="truncate">
-              <p className="text-xs font-semibold text-white">Usuario Master</p>
-              <p className="text-[11px] text-slate-400 truncate">master@centryx.io</p>
+            <div>
+              <div className="text-xs font-bold text-white capitalize">{currentUser}</div>
+              <div className="text-[10px] text-[#2DD4BF]">Admin Máster</div>
             </div>
           </div>
+
+          <Link href="/login" className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Cerrar Sesión">
+            <LogOut className="w-4 h-4" />
+          </Link>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-y-auto">
+      <main className="flex-1 flex flex-col overflow-hidden">
         
-        {/* Topbar Filter */}
-        <header className="h-16 bg-[#0A1525]/80 backdrop-blur border-b border-white/10 px-8 flex items-center justify-between sticky top-0 z-10">
+        {/* Top Operational Header Bar */}
+        <header className="h-16 bg-[#0A1525] border-b border-white/10 px-8 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 bg-[#0D1B2E] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-300">
-              <Building2 className="w-4 h-4 text-[#2DD4BF]" />
-              <span>Empresa:</span>
-              <select className="bg-transparent text-white font-medium focus:outline-none cursor-pointer">
-                <option className="bg-[#0D1B2E]">Invernandez Group (3 Empresas)</option>
-                <option className="bg-[#0D1B2E]">Empresa #1 (Logística)</option>
-                <option className="bg-[#0D1B2E]">Empresa #2 (Retail)</option>
-              </select>
-            </div>
-
-            <div className="flex items-center space-x-2 bg-[#0D1B2E] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-300">
-              <GitBranch className="w-4 h-4 text-[#3B82F6]" />
-              <span>Sucursal:</span>
-              <select className="bg-transparent text-white font-medium focus:outline-none cursor-pointer">
-                <option className="bg-[#0D1B2E]">Todas las sucursales (12)</option>
-                <option className="bg-[#0D1B2E]">Santo Domingo Central</option>
-                <option className="bg-[#0D1B2E]">Santiago Norte</option>
-              </select>
-            </div>
+            <h1 className="text-lg font-bold text-white tracking-wide">Centro de Control de Dispositivos</h1>
+            <span className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Agente DPC Conectado</span>
+            </span>
           </div>
 
           <div className="flex items-center space-x-4">
-            <button className="flex items-center space-x-2 bg-[#101D42] text-[#2DD4BF] hover:bg-[#2DD4BF]/10 px-4 py-2 rounded-xl text-xs font-semibold border border-[#2DD4BF]/30 transition-all">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin-slow" />
-              <span>Sincronizando (500 pings/min)</span>
-            </button>
+            {/* Buscador de Dispositivos */}
+            <div className="relative w-64">
+              <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+              <input 
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por Nombre, IMEI o Serial..."
+                className="w-full pl-9 pr-4 py-1.5 bg-[#050A14] border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#2DD4BF]"
+              />
+            </div>
+
+            <Link href="/login" className="px-3.5 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-all">
+              Cambiar Sesión
+            </Link>
           </div>
         </header>
 
-        {/* Dashboard Body */}
-        <div className="p-8 space-y-8">
+        {/* Dashboard Dashboard Body */}
+        <div className="flex-1 overflow-y-auto p-8 space-y-8">
           
-          {/* Header Title */}
-          <div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Centro de Control de Dispositivos</h2>
-            <p className="text-sm text-slate-400 mt-1">Estado de flota en tiempo real, Índice de Foco diario y telemetría de uso.</p>
-          </div>
-
-          {/* Metric Cards Grid */}
+          {/* Métricas Principales de Telemetría */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            
-            {/* Dispositivos Totales */}
-            <div className="centryx-card p-5 relative overflow-hidden">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xs text-slate-400 font-medium">Dispositivos Activos</p>
-                  <h3 className="text-3xl font-bold text-white mt-2">500</h3>
-                </div>
-                <div className="p-3 bg-[#3B82F6]/10 rounded-xl border border-[#3B82F6]/20">
-                  <Smartphone className="w-6 h-6 text-[#3B82F6]" />
-                </div>
+            <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400">Total Dispositivos</span>
+                <Smartphone className="w-5 h-5 text-[#3B82F6]" />
               </div>
-              <p className="text-xs text-[#10B981] mt-4 flex items-center font-medium">
-                <TrendingUp className="w-3.5 h-3.5 mr-1" /> 100% Asignados a Personal
-              </p>
+              <div className="mt-3 text-2xl font-extrabold text-white font-mono">{devices.length}</div>
+              <div className="mt-1 text-[11px] text-emerald-400 flex items-center">
+                <span>100% Bajo Política DPC</span>
+              </div>
             </div>
 
-            {/* En Línea */}
-            <div className="centryx-card p-5 relative overflow-hidden">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xs text-slate-400 font-medium">En Línea Ahora</p>
-                  <h3 className="text-3xl font-bold text-[#10B981] mt-2">482</h3>
-                </div>
-                <div className="p-3 bg-[#10B981]/10 rounded-xl border border-[#10B981]/20">
-                  <div className="w-4 h-4 rounded-full bg-[#10B981] animate-pulse-dot" />
-                </div>
+            <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400">En Línea (Productivo)</span>
+                <Activity className="w-5 h-5 text-[#10B981]" />
               </div>
-              <p className="text-xs text-slate-400 mt-4">96.4% de presencia continua</p>
+              <div className="mt-3 text-2xl font-extrabold text-emerald-400 font-mono">
+                {devices.filter(d => d.status === 'online').length}
+              </div>
+              <div className="mt-1 text-[11px] text-slate-400">Transmitiendo cada 30s</div>
             </div>
 
-            {/* Promedio Índice de Foco */}
-            <div className="centryx-card p-5 relative overflow-hidden">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xs text-slate-400 font-medium">Índice de Foco Promedio</p>
-                  <h3 className="text-3xl font-bold text-[#2DD4BF] mt-2">91.4%</h3>
-                </div>
-                <div className="p-3 bg-[#2DD4BF]/10 rounded-xl border border-[#2DD4BF]/20">
-                  <Award className="w-6 h-6 text-[#2DD4BF]" />
-                </div>
+            <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400">Alertas de Uso</span>
+                <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
               </div>
-              <p className="text-xs text-[#2DD4BF] mt-4 font-medium">Productividad Alta (+4.2%)</p>
+              <div className="mt-3 text-2xl font-extrabold text-amber-400 font-mono">
+                {devices.filter(d => d.status === 'warning').length}
+              </div>
+              <div className="mt-1 text-[11px] text-amber-400/80">App no autorizada activa</div>
             </div>
 
-            {/* Alertas Atencion */}
-            <div className="centryx-card p-5 relative overflow-hidden">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xs text-slate-400 font-medium">Alertas / Bloqueos</p>
-                  <h3 className="text-3xl font-bold text-[#F97316] mt-2">3</h3>
-                </div>
-                <div className="p-3 bg-[#F97316]/10 rounded-xl border border-[#F97316]/20">
-                  <AlertTriangle className="w-6 h-6 text-[#F97316]" />
-                </div>
+            <div className="bg-[#0D1B2E] border border-white/10 rounded-2xl p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400">Bloqueados Remotamente</span>
+                <Lock className="w-5 h-5 text-[#EF4444]" />
               </div>
-              <p className="text-xs text-[#EF4444] mt-4 font-medium">1 Dispositivo Bloqueado</p>
+              <div className="mt-3 text-2xl font-extrabold text-red-400 font-mono">
+                {devices.filter(d => d.locked).length}
+              </div>
+              <div className="mt-1 text-[11px] text-red-400/80">PIN Kiosk Forzado</div>
             </div>
-
           </div>
 
-          {/* Device Table Section */}
-          <div className="centryx-card overflow-hidden">
+          {/* Tabla de Dispositivos con Gestión en Vivo */}
+          <div className="bg-[#0D1B2E] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-white">Monitoreo de Telemetría en Vivo</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Última app detectada en primer plano y nivel de foco por dispositivo.</p>
+                <h3 className="text-base font-bold text-white flex items-center space-x-2">
+                  <span>Listado de Gestión de Equipos</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-[#2DD4BF]/10 text-[#2DD4BF] border border-[#2DD4BF]/20 font-mono">
+                    {filteredDevices.length} filtrados
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">Seleccione cualquier equipo para abrir la consola de control remoto</p>
               </div>
 
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input 
-                    type="text" 
-                    placeholder="Buscar por IMEI, Serie o Nombre..." 
-                    className="bg-[#050A14] border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#2DD4BF]/50 w-64"
-                  />
-                </div>
+              {/* Filtros por Estado */}
+              <div className="flex items-center space-x-2 bg-[#050A14] p-1.5 rounded-xl border border-white/10">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    statusFilter === 'all' ? 'bg-[#2DD4BF] text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setStatusFilter('online')}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    statusFilter === 'online' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  En Línea
+                </button>
+                <button
+                  onClick={() => setStatusFilter('warning')}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    statusFilter === 'warning' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Alertas
+                </button>
+                <button
+                  onClick={() => setStatusFilter('locked')}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    statusFilter === 'locked' ? 'bg-red-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Bloqueados
+                </button>
               </div>
             </div>
 
-            {/* Table */}
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-[#0A1525] text-slate-400 uppercase font-mono text-[10px] tracking-wider border-b border-white/10">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#050A14] text-slate-400 uppercase tracking-wider font-semibold border-b border-white/10">
                   <tr>
-                    <th className="py-3.5 px-6">Dispositivo</th>
+                    <th className="py-3.5 px-6">Dispositivo / IMEI</th>
                     <th className="py-3.5 px-6">Sucursal</th>
-                    <th className="py-3.5 px-6">Estado</th>
+                    <th className="py-3.5 px-6">App en Uso</th>
                     <th className="py-3.5 px-6">Batería</th>
-                    <th className="py-3.5 px-6">App en primer plano</th>
-                    <th className="py-3.5 px-6">Índice de Foco</th>
+                    <th className="py-3.5 px-6">Índice Foco</th>
                     <th className="py-3.5 px-6 text-right">Acción Remota</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
-                  {mockDevices.map((device) => (
-                    <tr key={device.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-4 px-6 font-medium text-white">
-                        <div>{device.name}</div>
-                        <div className="text-[11px] text-slate-500 font-mono mt-0.5">{device.serial}</div>
-                      </td>
-
-                      <td className="py-4 px-6 text-slate-400">
-                        {device.branch}
-                      </td>
-
+                <tbody className="divide-y divide-white/5 font-medium">
+                  {filteredDevices.map((dev) => (
+                    <tr 
+                      key={dev.id} 
+                      onClick={() => setSelectedDevice(dev)}
+                      className="hover:bg-white/5 transition-all cursor-pointer group"
+                    >
                       <td className="py-4 px-6">
-                        {device.status === 'online' && (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/30">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] mr-1.5 animate-pulse-dot" />
-                            En Línea
-                          </span>
-                        )}
-                        {device.status === 'warning' && (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#F97316]/10 text-[#F97316] border border-[#F97316]/30">
-                            Desvío Perfil
-                          </span>
-                        )}
-                        {device.status === 'locked' && (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/30">
-                            <Lock className="w-3 h-3 mr-1" />
-                            Bloqueado
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="py-4 px-6">
-                        <div className="flex items-center space-x-2">
-                          <Battery className={`w-4 h-4 ${device.battery < 20 ? 'text-[#EF4444]' : 'text-[#10B981]'}`} />
-                          <span className="font-mono">{device.battery}%</span>
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-6 text-slate-200">
-                        <span className="font-semibold text-[#2DD4BF]">{device.app}</span>
-                      </td>
-
-                      <td className="py-4 px-6">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-16 bg-[#050A14] h-2 rounded-full overflow-hidden border border-white/10">
-                            <div 
-                              className={`h-full rounded-full ${device.focusIndex > 80 ? 'bg-[#10B981]' : device.focusIndex > 50 ? 'bg-[#FACC15]' : 'bg-[#EF4444]'}`} 
-                              style={{ width: `${device.focusIndex}%` }}
-                            />
+                        <div className="flex items-center space-x-3">
+                          <div className={`p-2 rounded-xl border ${
+                            dev.locked 
+                              ? 'bg-red-500/10 border-red-500/30 text-red-400' 
+                              : dev.status === 'warning'
+                              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                          }`}>
+                            <Smartphone className="w-4 h-4" />
                           </div>
-                          <span className="font-mono font-bold text-white">{device.focusIndex}%</span>
+                          <div>
+                            <div className="text-white font-semibold group-hover:text-[#2DD4BF] transition-all flex items-center space-x-2">
+                              <span>{dev.name}</span>
+                              {dev.locked && (
+                                <span className="px-2 py-0.5 text-[9px] bg-red-500/20 text-red-400 rounded-md font-bold">LOCKED</span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-mono">IMEI: {dev.imei || dev.serial}</div>
+                          </div>
                         </div>
+                      </td>
+
+                      <td className="py-4 px-6 text-slate-300">{dev.branch}</td>
+
+                      <td className="py-4 px-6">
+                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${
+                          dev.status === 'warning' 
+                            ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                            : dev.locked
+                            ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                            : 'bg-white/5 border-white/10 text-slate-300'
+                        }`}>
+                          {dev.app}
+                        </span>
+                      </td>
+
+                      <td className="py-4 px-6">
+                        <div className="flex items-center space-x-2 font-mono">
+                          <Battery className="w-4 h-4 text-emerald-400" />
+                          <span className="text-slate-200">{dev.battery}%</span>
+                        </div>
+                      </td>
+
+                      <td className="py-4 px-6 font-mono">
+                        <span className={`font-bold ${dev.focusIndex > 80 ? 'text-[#2DD4BF]' : dev.focusIndex > 50 ? 'text-amber-400' : 'text-red-400'}`}>
+                          {dev.focusIndex}/100
+                        </span>
                       </td>
 
                       <td className="py-4 px-6 text-right">
-                        <button className="px-3 py-1.5 rounded-lg bg-[#101D42] hover:bg-[#EF4444]/20 hover:text-[#EF4444] hover:border-[#EF4444]/40 text-slate-300 border border-white/10 text-xs transition-all">
-                          {device.locked ? 'Desbloquear' : 'Comandos'}
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDevice(dev);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-[#101D42] border border-[#2DD4BF]/30 text-[#2DD4BF] hover:bg-[#2DD4BF] hover:text-slate-950 font-bold transition-all text-xs flex items-center space-x-1.5 ml-auto"
+                        >
+                          <span>Gestionar</span>
+                          <ChevronRight className="w-4 h-4" />
                         </button>
                       </td>
                     </tr>
@@ -305,7 +352,16 @@ export default function DashboardPage() {
           </div>
 
         </div>
+
       </main>
+
+      {/* Modal / Consola de Gestión Remota de Dispositivo */}
+      <DeviceManagementModal 
+        device={selectedDevice} 
+        onClose={() => setSelectedDevice(null)} 
+        onUpdateDevice={handleUpdateDevice} 
+      />
+
     </div>
   );
 }
