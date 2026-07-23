@@ -1,48 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp"
-    android:background="#050A14">
+    android:background="#050A14"
+    android:padding="24dp">
 
-    <TextView
-        android:id="@+id/tvStatus"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Concesión de Permisos de Supervisión DPC"
-        android:textColor="#FFFFFF"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:layout_marginBottom="24dp" />
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:background="@drawable/bg_glass_card"
+        android:padding="28dp"
+        android:elevation="12dp">
 
-    <Button
-        android:id="@+id/btnGrantUsageStats"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:text="1. Conceder Permiso Uso de Aplicaciones"
-        android:textColor="#FFFFFF"
-        android:backgroundTint="#0D1B2E"
-        android:layout_marginBottom="12dp" />
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Asistente de Permisos de Supervisión DPC"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="8dp" />
 
-    <Button
-        android:id="@+id/btnGrantDeviceAdmin"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:text="2. Conceder Permiso Administrador DPC"
-        android:textColor="#FFFFFF"
-        android:backgroundTint="#0D1B2E"
-        android:layout_marginBottom="24dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Otorgue los siguientes permisos requeridos para activar la supervisión de este teléfono en la plataforma."
+            android:textColor="#94A3B8"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:layout_marginBottom="28dp" />
 
-    <Button
-        android:id="@+id/btnCompleteEnrollment"
-        android:layout_width="match_parent"
-        android:layout_height="54dp"
-        android:text="3. Completar Enrolamiento y Activar Supervisión"
-        android:textColor="#050A14"
-        android:textStyle="bold"
-        android:backgroundTint="#2DD4BF" />
+        <Button
+            android:id="@+id/btnGrantUsageStats"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="1. Permiso de Uso de Aplicaciones (Stats)"
+            android:textColor="#2DD4BF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_navy_button"
+            android:layout_marginBottom="14dp" />
 
-</LinearLayout>
+        <Button
+            android:id="@+id/btnGrantDeviceAdmin"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="2. Permiso Administrador DPC Centryx"
+            android:textColor="#2DD4BF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_navy_button"
+            android:layout_marginBottom="24dp" />
+
+        <Button
+            android:id="@+id/btnCompleteEnrollment"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:text="3. Completar &amp; Activar Supervisión"
+            android:textColor="#050A14"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_gradient_button" />
+
+    </LinearLayout>
+
+</RelativeLayout>

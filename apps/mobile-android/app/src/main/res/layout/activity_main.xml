@@ -1,76 +1,143 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp"
-    android:background="#050A14">
+    android:background="#050A14"
+    android:padding="24dp">
 
+    <!-- Card de Autenticación Glassmorphism 2026 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:background="@drawable/bg_glass_card"
+        android:padding="28dp"
+        android:elevation="12dp">
+
+        <!-- Logo Icon Shield Badge -->
+        <LinearLayout
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/bg_navy_button"
+            android:gravity="center"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🛡️"
+                android:textSize="24sp" />
+        </LinearLayout>
+
+        <!-- Titulo Centryx MDM -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="CENTRYX MDM"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.1" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="Activación de Agente & Supervisión DPC 2026"
+            android:textColor="#2DD4BF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="28dp" />
+
+        <!-- Label Usuario -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="USUARIO ADMINISTRADOR"
+            android:textColor="#94A3B8"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="6dp" />
+
+        <EditText
+            android:id="@+id/etUsername"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:hint="Ingrese su usuario (ej: master)"
+            android:textColorHint="#475569"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:background="@drawable/bg_input_field"
+            android:paddingHorizontal="16dp"
+            android:layout_marginBottom="18dp" />
+
+        <!-- Label Password -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CONTRASEÑA"
+            android:textColor="#94A3B8"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="6dp" />
+
+        <EditText
+            android:id="@+id/etPassword"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:hint="••••••••••••"
+            android:inputType="textPassword"
+            android:textColorHint="#475569"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:background="@drawable/bg_input_field"
+            android:paddingHorizontal="16dp"
+            android:layout_marginBottom="24dp" />
+
+        <Button
+            android:id="@+id/btnLogin"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:text="Iniciar Enrolamiento DPC"
+            android:textColor="#050A14"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_gradient_button" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center_horizontal"
+            android:visibility="gone"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:textColor="#94A3B8"
+            android:textSize="11sp"
+            android:layout_marginTop="16dp"
+            android:gravity="center" />
+
+    </LinearLayout>
+
+    <!-- Footer SOC Status -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="CENTRYK MDM"
-        android:textColor="#2DD4BF"
-        android:textSize="26sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.1"
-        android:layout_marginBottom="8dp" />
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:text="Centryx Enterprise Mobile Security v2.4.0"
+        android:textColor="#334155"
+        android:textSize="10sp"
+        android:textStyle="bold" />
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Activación y Enrolamiento de Supervisión DPC"
-        android:textColor="#94A3B8"
-        android:textSize="12sp"
-        android:layout_marginBottom="32dp" />
-
-    <EditText
-        android:id="@+id/etUsername"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:hint="Usuario Administrador (ej: master)"
-        android:textColorHint="#64748B"
-        android:textColor="#FFFFFF"
-        android:background="#0D1B2E"
-        android:paddingHorizontal="16dp"
-        android:layout_marginBottom="16dp" />
-
-    <EditText
-        android:id="@+id/etPassword"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:hint="Contraseña de Administrador"
-        android:inputType="textPassword"
-        android:textColorHint="#64748B"
-        android:textColor="#FFFFFF"
-        android:background="#0D1B2E"
-        android:paddingHorizontal="16dp"
-        android:layout_marginBottom="24dp" />
-
-    <Button
-        android:id="@+id/btnLogin"
-        android:layout_width="match_parent"
-        android:layout_height="54dp"
-        android:text="Autenticar e Iniciar Enrolamiento"
-        android:textColor="#050A14"
-        android:textStyle="bold"
-        android:backgroundTint="#2DD4BF" />
-
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        android:layout_marginTop="16dp" />
-
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="#94A3B8"
-        android:textSize="12sp"
-        android:layout_marginTop="16dp"
-        android:gravity="center" />
-
-</LinearLayout>
+</RelativeLayout>
