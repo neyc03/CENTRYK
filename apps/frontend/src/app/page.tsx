@@ -18,6 +18,8 @@ import {
   Sliders,
   Award
 } from 'lucide-react';
+import Link from 'next/link';
+
 
 export default function DashboardPage() {
   const [selectedCompany, setSelectedCompany] = useState('Invernandez Group');
@@ -52,43 +54,39 @@ export default function DashboardPage() {
         <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
           <div className="px-3 pb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Plataforma Core</div>
           
-          <a href="#" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl bg-[#101D42] text-[#2DD4BF] font-medium border border-[#2DD4BF]/30 shadow-[0_0_15px_rgba(45,212,191,0.1)]">
+          <Link href="/" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl bg-[#101D42] text-[#2DD4BF] font-medium border border-[#2DD4BF]/30 shadow-[0_0_15px_rgba(45,212,191,0.1)]">
             <Activity className="w-5 h-5 text-[#2DD4BF]" />
             <span>Monitoreo en Vivo</span>
-          </a>
+          </Link>
 
-          <a href="#" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-            <Smartphone className="w-5 h-5" />
-            <span>Gestión Dispositivos</span>
-          </a>
+          <Link href="/mapa" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+            <MapPin className="w-5 h-5 text-[#3B82F6]" />
+            <span>Mapa & Tracking GPS</span>
+          </Link>
 
-          <a href="#" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-            <MapPin className="w-5 h-5" />
-            <span>Mapa & Geocercas</span>
-          </a>
-
-          <a href="#" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-            <Award className="w-5 h-5" />
+          <Link href="/ranking" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+            <Award className="w-5 h-5 text-[#FACC15]" />
             <span>Índice de Foco & Ranking</span>
-          </a>
+          </Link>
 
-          <a href="#" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+          <Link href="/alertas" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
             <AlertTriangle className="w-5 h-5 text-[#F97316]" />
-            <span>Alertas de Uso</span>
-          </a>
+            <span>Alertas & Anomalías</span>
+          </Link>
+
+          <Link href="/reportes" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+            <TrendingUp className="w-5 h-5 text-[#10B981]" />
+            <span>Reportes PDF Semanales</span>
+          </Link>
 
           <div className="pt-6 px-3 pb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Estructura & Config</div>
 
-          <a href="#" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+          <Link href="/estructura" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
             <Building2 className="w-5 h-5" />
             <span>Empresas & Sucursales</span>
-          </a>
-
-          <a href="#" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-            <Sliders className="w-5 h-5" />
-            <span>Perfiles de Apps</span>
-          </a>
+          </Link>
         </nav>
+
 
         {/* Current Tenant Footer */}
         <div className="p-4 border-t border-white/10 bg-[#050A14]/50">

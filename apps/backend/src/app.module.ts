@@ -7,6 +7,7 @@ import { TelemetryModule } from './modules/telemetry/telemetry.module';
 import { RemoteControlModule } from './modules/remote-control/remote-control.module';
 import { FocusIndexModule } from './modules/focus-index/focus-index.module';
 import { AlertsModule } from './modules/alerts/alerts.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AlertsModule } from './modules/alerts/alerts.module';
     RemoteControlModule,
     FocusIndexModule,
     AlertsModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}
