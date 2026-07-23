@@ -46,7 +46,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:text="Activación de Agente & Supervisión DPC 2026"
+            android:text="Activación de Agente &amp; Supervisión DPC 2026"
             android:textColor="#2DD4BF"
             android:textSize="11sp"
             android:textStyle="bold"
