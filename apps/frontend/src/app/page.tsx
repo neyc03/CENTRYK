@@ -102,6 +102,11 @@ export default function DashboardPage() {
 
           <div className="pt-6 px-3 pb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Administración</div>
 
+          <Link href="/usuarios" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+            <Users className="w-5 h-5 text-[#2DD4BF]" />
+            <span>Gestión de Usuarios</span>
+          </Link>
+
           <Link href="/estructura" className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all">
             <Building2 className="w-5 h-5 text-[#10B981]" />
             <span>Multi-Tenant & QR</span>
