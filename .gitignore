@@ -32,7 +32,11 @@ app/build/
 .DS_Store
 Thumbs.db
 
+# Reference repo
+docs/ref-gestor-compras/
+
 # Database storage & logs
 pgdata/
 redisdata/
 *.log
+
