@@ -15,7 +15,7 @@ export class SeedService {
     // 1. Crear Empresa Principal
     const { data: company, error: compErr } = await supabase
       .from('companies')
-      .upsert({ name: 'Invernandez Group SRL', tax_id: '1-30-99812-1', is_active: true }, { onConflict: 'name' })
+      .upsert({ name: 'Empresa Corporativa SRL', tax_id: '1-30-99812-1', is_active: true }, { onConflict: 'name' })
       .select()
       .single();
 

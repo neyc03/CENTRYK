@@ -26,7 +26,7 @@ export default function StructurePage() {
   const [showAuditorModal, setShowAuditorModal] = useState(false);
 
   const mockCompanies = [
-    { id: '1', name: 'Invernandez Group SRL', taxId: '1-30-99812-1', branchesCount: 5, devicesCount: 220, status: 'Activa' },
+    { id: '1', name: 'Empresa Corporativa SRL', taxId: '1-30-99812-1', branchesCount: 5, devicesCount: 220, status: 'Activa' },
     { id: '2', name: 'Logística & Transporte Central', taxId: '1-31-44510-9', branchesCount: 4, devicesCount: 180, status: 'Activa' },
     { id: '3', name: 'Retail Dominis SRL', taxId: '1-32-88102-3', branchesCount: 3, devicesCount: 100, status: 'Activa' },
   ];
@@ -40,7 +40,7 @@ export default function StructurePage() {
   // Auditores Autorizados para acceder al Dashboard
   const [auditors, setAuditors] = useState([
     { id: 'a1', username: 'master', fullName: 'Administrador Máster', role: 'Máster Total', email: 'master@centryx.io', status: 'Activo' },
-    { id: 'a2', username: 'auditor_central', fullName: 'Auditor General de Operaciones', role: 'Auditor de Campo', email: 'auditoria@invernandez.com', status: 'Activo' },
+    { id: 'a2', username: 'auditor_central', fullName: 'Auditor General de Operaciones', role: 'Auditor de Campo', email: 'auditoria@empresa.com', status: 'Activo' },
     { id: 'a3', username: 'auditor_seguridad', fullName: 'Auditor de Seguridad IT', role: 'Auditor de Seguridad', email: 'security@centryx.io', status: 'Activo' },
   ]);
 

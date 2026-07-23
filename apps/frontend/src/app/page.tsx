@@ -33,7 +33,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOi
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function DashboardPage() {
-  const [selectedCompany, setSelectedCompany] = useState('Invernandez Group');
+  const [selectedCompany, setSelectedCompany] = useState('Todas las Empresas');
   const [selectedBranch, setSelectedBranch] = useState('Todas las sucursales');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'warning' | 'locked'>('all');
@@ -44,11 +44,11 @@ export default function DashboardPage() {
 
   // Lista de Dispositivos (Sincronizada con Supabase Cloud)
   const [devices, setDevices] = useState<Device[]>([
-    { id: '1', name: 'Galaxy Tab A9 (Caja 01)', serial: 'SN-99821-A', imei: '358992109281201', company: 'Invernandez Group SRL', branch: 'Santo Domingo Central', status: 'online', battery: 94, app: 'Punto de Venta POS', focusIndex: 98, locked: false },
-    { id: '2', name: 'Galaxy A15 (Logística #04)', serial: 'SN-88412-B', imei: '358992109281202', company: 'Invernandez Group SRL', branch: 'Santiago Norte', status: 'online', battery: 78, app: 'Waze GPS Navigation', focusIndex: 94, locked: false },
-    { id: '3', name: 'Nokia G42 (Supervisión)', serial: 'SN-77301-C', imei: '358992109281203', company: 'Invernandez Group SRL', branch: 'La Vega Central', status: 'warning', battery: 45, app: 'YouTube (No Permitido)', focusIndex: 62, locked: false },
-    { id: '4', name: 'Galaxy Tab A9 (Caja 02)', serial: 'SN-99822-D', imei: '358992109281204', company: 'Invernandez Group SRL', branch: 'Santo Domingo Central', status: 'online', battery: 88, app: 'Punto de Venta POS', focusIndex: 99, locked: false },
-    { id: '5', name: 'Galaxy A05 (Entregas #12)', serial: 'SN-55210-E', imei: '358992109281205', company: 'Invernandez Group SRL', branch: 'Puerto Plata', status: 'locked', battery: 12, app: 'Sistema Bloqueado', focusIndex: 0, locked: true },
+    { id: '1', name: 'Galaxy Tab A9 (Caja 01)', serial: 'SN-99821-A', imei: '358992109281201', company: 'Empresa Corporativa', branch: 'Sucursal Central', status: 'online', battery: 94, app: 'Punto de Venta POS', focusIndex: 98, locked: false },
+    { id: '2', name: 'Galaxy A15 (Logística #04)', serial: 'SN-88412-B', imei: '358992109281202', company: 'Empresa Corporativa', branch: 'Sucursal Norte', status: 'online', battery: 78, app: 'Waze GPS Navigation', focusIndex: 94, locked: false },
+    { id: '3', name: 'Nokia G42 (Supervisión)', serial: 'SN-77301-C', imei: '358992109281203', company: 'Empresa Corporativa', branch: 'Sucursal Este', status: 'warning', battery: 45, app: 'YouTube (No Permitido)', focusIndex: 62, locked: false },
+    { id: '4', name: 'Galaxy Tab A9 (Caja 02)', serial: 'SN-99822-D', imei: '358992109281204', company: 'Empresa Corporativa', branch: 'Sucursal Central', status: 'online', battery: 88, app: 'Punto de Venta POS', focusIndex: 99, locked: false },
+    { id: '5', name: 'Galaxy A05 (Entregas #12)', serial: 'SN-55210-E', imei: '358992109281205', company: 'Empresa Corporativa', branch: 'Sucursal Oeste', status: 'locked', battery: 12, app: 'Sistema Bloqueado', focusIndex: 0, locked: true },
   ]);
 
   // Cargar datos reales de Supabase al montar el componente

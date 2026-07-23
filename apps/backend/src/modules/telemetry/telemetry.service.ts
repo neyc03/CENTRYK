@@ -58,7 +58,7 @@ export class TelemetryService {
       averageFocusIndex: 91.4,
       alertsCount: 3,
       topUsedApps: [
-        { packageName: 'com.pos.invernandez', name: 'Punto de Venta POS', category: 'productive', totalHours: 1420 },
+        { packageName: 'com.pos.corporativo', name: 'Punto de Venta POS', category: 'productive', totalHours: 1420 },
         { packageName: 'com.waze', name: 'Waze Navigation', category: 'productive', totalHours: 850 },
         { packageName: 'com.centryx.delivery', name: 'Centryx Track', category: 'productive', totalHours: 610 },
         { packageName: 'com.google.android.youtube', name: 'YouTube', category: 'unproductive', totalHours: 42 },

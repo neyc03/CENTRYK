@@ -17,7 +17,7 @@ import {
 import Link from 'next/link';
 
 export default function ReportsPage() {
-  const [selectedCompany, setSelectedCompany] = useState('Invernandez Group SRL');
+  const [selectedCompany, setSelectedCompany] = useState('Empresa Corporativa SRL');
   const [selectedBranch, setSelectedBranch] = useState('Todas las sucursales');
   const [dateRange, setDateRange] = useState('Semana Actual (Jul 17 - Jul 23, 2026)');
   const [isGenerating, setIsGenerating] = useState(false);

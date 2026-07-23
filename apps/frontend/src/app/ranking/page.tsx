@@ -18,15 +18,15 @@ import {
 import Link from 'next/link';
 
 export default function RankingPage() {
-  const [selectedCompany, setSelectedCompany] = useState('Invernandez Group');
+  const [selectedCompany, setSelectedCompany] = useState('Todas las Empresas');
 
   const mockRanking = [
-    { rank: 1, name: 'Galaxy Tab A9 (Caja 02)', user: 'Ana María Gómez (Cajera)', company: 'Invernandez SRL', branch: 'Santo Domingo Central', score: 99, productiveHrs: '7h 12m', unproductiveHrs: '0m', badge: 'gold' },
-    { rank: 2, name: 'Galaxy Tab A9 (Caja 01)', user: 'Carlos Ramos (Cajero)', company: 'Invernandez SRL', branch: 'Santo Domingo Central', score: 98, productiveHrs: '7h 05m', unproductiveHrs: '2m', badge: 'gold' },
-    { rank: 3, name: 'Galaxy A15 (Logística #04)', user: 'José Luis Reyes (Chofer)', company: 'Logística Central', branch: 'Santiago Norte', score: 94, productiveHrs: '6h 40m', unproductiveHrs: '5m', badge: 'silver' },
-    { rank: 4, name: 'Galaxy Tab A9 (Caja 04)', user: 'Laura Martínez (Cajera)', company: 'Invernandez SRL', branch: 'Santiago Norte', score: 92, productiveHrs: '6h 30m', unproductiveHrs: '10m', badge: 'silver' },
-    { rank: 5, name: 'Galaxy A05 (Entregas #08)', user: 'Pedro Vargas (Despacho)', company: 'Logística Central', branch: 'Puerto Plata', score: 89, productiveHrs: '6h 10m', unproductiveHrs: '18m', badge: 'bronze' },
-    { rank: 6, name: 'Nokia G42 (Supervisión)', user: 'Roberto Díaz (Supervisor)', company: 'Invernandez SRL', branch: 'La Vega Central', score: 62, productiveHrs: '3h 30m', unproductiveHrs: '1h 30m', badge: 'needs_improvement' },
+    { rank: 1, name: 'Galaxy Tab A9 (Caja 02)', user: 'Ana María Gómez (Cajera)', company: 'Empresa Corporativa', branch: 'Santo Domingo Central', score: 99, productiveHrs: '7h 12m', unproductiveHrs: '0m', badge: 'gold' },
+    { rank: 2, name: 'Galaxy Tab A9 (Caja 01)', user: 'Carlos Ramos (Cajero)', company: 'Empresa Corporativa', branch: 'Santo Domingo Central', score: 98, productiveHrs: '7h 05m', unproductiveHrs: '2m', badge: 'gold' },
+    { rank: 3, name: 'Galaxy A15 (Logística #04)', user: 'Juan Pérez (Chofer)', company: 'Empresa Corporativa', branch: 'Santiago Norte', score: 94, productiveHrs: '6h 50m', unproductiveHrs: '5m', badge: 'silver' },
+    { rank: 4, name: 'Galaxy Tab A9 (Caja 04)', user: 'Laura Martínez (Cajera)', company: 'Empresa Corporativa', branch: 'Santiago Norte', score: 92, productiveHrs: '6h 30m', unproductiveHrs: '10m', badge: 'silver' },
+    { rank: 5, name: 'Galaxy A05 (Entregas #08)', user: 'Pedro Sánchez (Chofer)', company: 'Empresa Corporativa', branch: 'Puerto Plata', score: 88, productiveHrs: '6h 10m', unproductiveHrs: '15m', badge: 'bronze' },
+    { rank: 6, name: 'Nokia G42 (Supervisión)', user: 'Roberto Díaz (Supervisor)', company: 'Empresa Corporativa', branch: 'La Vega Central', score: 62, productiveHrs: '3h 30m', unproductiveHrs: '1h 30m', badge: 'needs_improvement' },
   ];
 
   return (

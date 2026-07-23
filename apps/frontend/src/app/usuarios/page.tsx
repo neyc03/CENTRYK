@@ -44,7 +44,7 @@ export default function UsersManagementPage() {
     {
       id: '1',
       username: 'master',
-      fullName: 'Administrador Máster Invernandez',
+      fullName: 'Administrador Máster',
       email: 'master@centryx.io',
       role: 'super_admin',
       status: 'Activo',
@@ -54,7 +54,7 @@ export default function UsersManagementPage() {
       id: '2',
       username: 'auditor_lectura',
       fullName: 'Auditor de Consulta Operativa',
-      email: 'auditoria@invernandez.com',
+      email: 'auditoria@empresa.com',
       role: 'user_base',
       status: 'Activo',
       createdAt: '2026-03-15'
