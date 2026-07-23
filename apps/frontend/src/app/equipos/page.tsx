@@ -41,6 +41,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sylwwjuwxtz
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5bHd3anV3eHR6aWxqamtvd3N6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDgxMjk0NSwiZXhwIjoyMTAwMzg4OTQ1fQ.16CCyu_5JhbsMUEhQh78_Pzm_649LJb-DgasnUlqDwU';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+const DEFAULT_BRANCH_ID = "beb32800-bba4-4b0f-84ab-47ecc150a5c7";
+
 export interface StaffGroup {
   id: string;
   name: string;
@@ -89,8 +91,6 @@ export default function EquiposManagementPage() {
   // Modales CRUD Grupos
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<StaffGroup | null>(null);
-  const [showAssignGroupModal, setShowAssignGroupModal] = useState(false);
-  const [selectedDeviceToAssign, setSelectedDeviceToAssign] = useState<ManagedDevice | null>(null);
 
   // Estados Formulario Grupo
   const [newGroupName, setNewGroupName] = useState('');
@@ -101,7 +101,7 @@ export default function EquiposManagementPage() {
   const [devices, setDevices] = useState<ManagedDevice[]>([]);
 
   useEffect(() => {
-    const token = localStorage.getItem('centryx_token');
+    const token = sessionStorage.getItem('centryx_token') || localStorage.getItem('centryx_token');
     if (!token) {
       router.push('/login');
       return;
@@ -119,9 +119,9 @@ export default function EquiposManagementPage() {
         const mappedG: StaffGroup[] = dbGroups.map((g: any) => ({
           id: g.id,
           name: g.name,
-          description: g.description || 'Grupo de Trabajo DPC',
-          allowedApps: g.allowed_apps ? g.allowed_apps.split(',') : ['Waze GPS', 'WhatsApp Business'],
-          blockedApps: g.blocked_apps ? g.blocked_apps.split(',') : ['YouTube', 'TikTok', 'Facebook'],
+          description: 'Grupo DPC de la Red Corporativa',
+          allowedApps: ['Waze GPS', 'WhatsApp Business'],
+          blockedApps: ['YouTube', 'TikTok', 'Facebook'],
           deviceCount: 0
         }));
         setGroups(mappedG);
@@ -157,7 +157,7 @@ export default function EquiposManagementPage() {
     }
   };
 
-  // BOTÓN DE BLOQUEO GENERAL REMOTO DE TELÉFONO (Ejecuta Bloqueo Instantáneo)
+  // BOTÓN DE BLOQUEO GENERAL REMOTO DE TELÉFONO (Ejecuta Bloqueo Instantáneo en la BD)
   const handleToggleRemoteLockDevice = async (device: ManagedDevice) => {
     const newLockState = !device.isLocked;
     const actionText = newLockState ? 'Bloquear' : 'Desbloquear';
@@ -189,11 +189,9 @@ export default function EquiposManagementPage() {
     let updatedAllowed: string[];
 
     if (isCurrentlyBlocked) {
-      // Desbloquear app (Pasar a Permitidas)
       updatedBlocked = selectedDeviceForApps.blockedApps.filter(a => a !== appName);
       updatedAllowed = [...selectedDeviceForApps.allowedApps, appName];
     } else {
-      // Bloquear app (Pasar a Bloqueadas)
       updatedAllowed = selectedDeviceForApps.allowedApps.filter(a => a !== appName);
       updatedBlocked = [...selectedDeviceForApps.blockedApps, appName];
     }
@@ -210,7 +208,7 @@ export default function EquiposManagementPage() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Crear o Editar Grupo
+  // Crear o Editar Grupo en la Base de Datos con branch_id válido
   const handleSaveGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGroupName) return;
@@ -219,7 +217,7 @@ export default function EquiposManagementPage() {
       if (editingGroup) {
         const { error } = await supabase
           .from('staff_groups')
-          .update({ name: newGroupName, description: newGroupDesc })
+          .update({ name: newGroupName })
           .eq('id', editingGroup.id);
 
         if (error) throw error;
@@ -227,10 +225,13 @@ export default function EquiposManagementPage() {
       } else {
         const { error } = await supabase
           .from('staff_groups')
-          .insert({ name: newGroupName, description: newGroupDesc });
+          .insert({ 
+            name: newGroupName,
+            branch_id: DEFAULT_BRANCH_ID
+          });
 
         if (error) throw error;
-        setNotification(`Grupo '${newGroupName}' creado.`);
+        setNotification(`Grupo '${newGroupName}' creado exitosamente.`);
       }
 
       fetchDataFromSupabase();
@@ -244,21 +245,21 @@ export default function EquiposManagementPage() {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Eliminar Grupo
+  // Eliminar Grupo de la Base de Datos
   const handleDeleteGroup = async (groupId: string, groupName: string) => {
     if (!confirm(`¿Está seguro de eliminar el grupo '${groupName}'?`)) return;
     try {
       const { error } = await supabase.from('staff_groups').delete().eq('id', groupId);
       if (error) throw error;
       setGroups(prev => prev.filter(g => g.id !== groupId));
-      setNotification(`Grupo '${groupName}' eliminado.`);
+      setNotification(`Grupo '${groupName}' eliminado de la plataforma.`);
     } catch (err: any) {
       setNotification(`Error: ${err.message}`);
     }
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Eliminar Dispositivo
+  // Eliminar Dispositivo de la Base de Datos
   const handleDeleteDevice = async (deviceId: string, deviceName: string) => {
     if (!confirm(`¿Está seguro de eliminar el teléfono '${deviceName}' del servidor?`)) return;
     try {
@@ -374,13 +375,13 @@ export default function EquiposManagementPage() {
         </button>
       </div>
 
-      {/* Pestaña Equipos: Con Bloqueo General y Lista Individual de Aplicaciones */}
+      {/* Pestaña Equipos */}
       {activeTab === 'devices' && (
         <div className="bg-[#0D1B2E] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
           <div className="p-6 border-b border-white/10 flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold text-white">Listado de Teléfonos Corporativos</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Haga clic en 'Bloqueo de Apps' para gestionar aplicaciones instaladas o use 'Bloquear Teléfono' para cierre general instantáneo</p>
+              <p className="text-xs text-slate-400 mt-0.5">Haga clic en 'Lista &amp; Bloqueo de Apps' para gestionar aplicaciones o 'Bloquear Teléfono' para cierre remoto</p>
             </div>
 
             <div className="relative w-64">
@@ -457,7 +458,6 @@ export default function EquiposManagementPage() {
                       </td>
 
                       <td className="py-4 px-6 text-right space-x-2">
-                        {/* BOTÓN GENERAL DE BLOQUEO REMOTO DEL TELÉFONO */}
                         <button
                           onClick={() => handleToggleRemoteLockDevice(dev)}
                           className={`px-3 py-1.5 rounded-xl font-bold transition-all text-xs border flex items-center space-x-1 inline-flex ${
@@ -502,7 +502,7 @@ export default function EquiposManagementPage() {
               </div>
               <div>
                 <h3 className="text-base font-bold text-white">{g.name}</h3>
-                <p className="text-xs text-slate-400 mt-1">{g.description}</p>
+                <p className="text-xs text-slate-400 mt-1">Grupo registrado en la base de datos corporativa</p>
               </div>
             </div>
           ))}
@@ -528,7 +528,7 @@ export default function EquiposManagementPage() {
         </div>
       )}
 
-      {/* MODAL LISTA DE APLICACIONES INSTALADAS & CONTROL INDIVIDUAL DE BLOQUEO POR TELÉFONO */}
+      {/* MODAL LISTA DE APLICACIONES INSTALADAS & CONTROL INDIVIDUAL */}
       {selectedDeviceForApps && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="w-full max-w-2xl bg-[#0D1B2E] border border-white/10 rounded-3xl p-6 space-y-6 shadow-2xl">
@@ -545,7 +545,6 @@ export default function EquiposManagementPage() {
               </button>
             </div>
 
-            {/* Lista de Aplicaciones Instaladas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1">
               {DEFAULT_APP_CATALOG.map((app) => {
                 const isBlocked = selectedDeviceForApps.blockedApps.includes(app.name);
@@ -597,14 +596,14 @@ export default function EquiposManagementPage() {
         </div>
       )}
 
-      {/* Modal Crear / Editar Grupo */}
+      {/* Modal Crear Grupo */}
       {showGroupModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
           <div className="w-full max-w-lg bg-[#0D1B2E] border border-white/10 rounded-3xl p-6 space-y-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <h3 className="text-lg font-bold text-white flex items-center space-x-2">
                 <Users className="w-5 h-5 text-[#2DD4BF]" />
-                <span>{editingGroup ? 'Editar Grupo' : 'Crear Nuevo Grupo DPC'}</span>
+                <span>Crear Nuevo Grupo DPC en la Plataforma</span>
               </h3>
               <button onClick={() => setShowGroupModal(false)} className="p-2 text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -621,17 +620,6 @@ export default function EquiposManagementPage() {
                   placeholder="Ej: Grupo Vendedores Zona Norte"
                   className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:border-[#2DD4BF]"
                   required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Descripción</label>
-                <input
-                  type="text"
-                  value={newGroupDesc}
-                  onChange={(e) => setNewGroupDesc(e.target.value)}
-                  placeholder="Ej: Dispositivos de ventas en campo"
-                  className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-xl text-white text-xs placeholder-slate-500 focus:outline-none focus:border-[#2DD4BF]"
                 />
               </div>
 
