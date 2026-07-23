@@ -58,7 +58,7 @@ class UsageStatsCollectorService : Service() {
         val notification: Notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Centryx MDM Activo")
             .setContentText("Monitoreo corporativo de seguridad y productividad en ejecución")
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_launcher)
             .build()
 
         startForeground(1001, notification)
