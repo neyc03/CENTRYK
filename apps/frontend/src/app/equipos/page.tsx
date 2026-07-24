@@ -32,7 +32,8 @@ import {
   Check,
   Ban,
   ExternalLink,
-  Copy
+  Copy,
+  ShieldCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -47,10 +48,19 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const DEFAULT_BRANCH_ID = "beb32800-bba4-4b0f-84ab-47ecc150a5c7";
 const DEFAULT_COMPANY_ID = "3ad63dff-7d45-4b07-83a0-152c04634510";
 
-// Datos de aprovisionamiento calculados exactamente
-const PUBLIC_APK_DOWNLOAD_URL = "https://centryk.vercel.app/apk/centryx-dpc-v2.apk";
-const APK_SHA256_BASE64URL = "O7-Ag5Ajmf4l4EdAWVlLTp0x59yvqWLykniFZoHXvuc=";
-const APK_SHA256_HEX = "3BBF8083902399FE25E0474059594B4E9D31E7DCAFA962F29278856681D7BEE7";
+// Datos de Google Android Management API (AMAPI)
+const AMAPI_ENTERPRISE_ID = "enterprises/LC00lhcqu0";
+const AMAPI_ENROLLMENT_TOKEN = "NEMEBCKRQVFBTFLHPVJW";
+
+// Payload QR Oficial generado directamente por la API REST de Google Cloud AMAPI
+const OFFICIAL_GOOGLE_AMAPI_PAYLOAD = {
+  "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.google.android.apps.work.clouddpc/.receivers.CloudDeviceAdminReceiver",
+  "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": "I5YvS0O5hXY46mb01BlRjq4oJJGs2kuUcHvVkAPEXlg",
+  "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": "https://play.google.com/managed/downloadManagingApp?identifier=setup",
+  "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
+    "com.google.android.apps.work.clouddpc.EXTRA_ENROLLMENT_TOKEN": AMAPI_ENROLLMENT_TOKEN
+  }
+};
 
 export interface StaffGroup {
   id: string;
@@ -94,9 +104,9 @@ export default function EquiposManagementPage() {
   const [notification, setNotification] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Estados QR Code
+  // Estados QR Code AMAPI
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
-  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedToken, setCopiedToken] = useState(false);
 
   // Modal Restricción Individual de Aplicaciones por Dispositivo
   const [selectedDeviceForApps, setSelectedDeviceForApps] = useState<ManagedDevice | null>(null);
@@ -120,26 +130,14 @@ export default function EquiposManagementPage() {
       return;
     }
     fetchDataFromSupabase();
-    generateRealEnterpriseQR();
+    generateGoogleAMAPIQR();
   }, [router]);
 
-  const generateRealEnterpriseQR = async () => {
+  const generateGoogleAMAPIQR = async () => {
     try {
-      const payload = {
-        "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "io.centryx.mdm/.CentryxDeviceAdminReceiver",
-        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": PUBLIC_APK_DOWNLOAD_URL,
-        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM": APK_SHA256_BASE64URL,
-        "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,
-        "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
-          "server_url": supabaseUrl,
-          "company_id": DEFAULT_COMPANY_ID,
-          "branch_id": DEFAULT_BRANCH_ID
-        }
-      };
-
-      const jsonStr = JSON.stringify(payload, null, 2);
+      const jsonStr = JSON.stringify(OFFICIAL_GOOGLE_AMAPI_PAYLOAD, null, 2);
       const url = await QRCode.toDataURL(jsonStr, {
-        width: 400,
+        width: 420,
         margin: 2,
         color: {
           dark: '#050A14',
@@ -148,7 +146,7 @@ export default function EquiposManagementPage() {
       });
       setQrDataUrl(url);
     } catch (err) {
-      console.error('Error generando QR:', err);
+      console.error('Error generando QR de Google AMAPI:', err);
     }
   };
 
@@ -309,10 +307,10 @@ export default function EquiposManagementPage() {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  const copyDownloadUrl = () => {
-    navigator.clipboard.writeText(PUBLIC_APK_DOWNLOAD_URL);
-    setCopiedUrl(true);
-    setTimeout(() => setCopiedUrl(false), 2500);
+  const copyEnrollmentToken = () => {
+    navigator.clipboard.writeText(AMAPI_ENROLLMENT_TOKEN);
+    setCopiedToken(true);
+    setTimeout(() => setCopiedToken(false), 2500);
   };
 
   const filteredDevices = devices.filter(d => 
@@ -330,8 +328,8 @@ export default function EquiposManagementPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Gestión Integral de Equipos &amp; Bloqueo Remoto DPC</h1>
-            <p className="text-xs text-slate-400 mt-0.5">Control individual de aplicaciones instaladas, bloqueo general de teléfono y gestión de grupos</p>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Gestión Integral de Equipos &amp; Google AMAPI DPC</h1>
+            <p className="text-xs text-slate-400 mt-0.5">Control de flota móvil con Google Android Management API de grado empresarial</p>
           </div>
         </div>
 
@@ -354,7 +352,7 @@ export default function EquiposManagementPage() {
             className="flex items-center space-x-2 bg-gradient-to-r from-[#2DD4BF] to-[#3B82F6] text-[#050A14] px-4 py-2.5 rounded-xl font-bold text-xs shadow-[0_0_20px_rgba(45,212,191,0.3)] hover:opacity-90 transition-all cursor-pointer"
           >
             <QrCode className="w-4 h-4" />
-            <span>Generar QR Aprovisionamiento DPC</span>
+            <span>Generar QR Google AMAPI</span>
           </button>
         </div>
       </div>
@@ -401,7 +399,7 @@ export default function EquiposManagementPage() {
           }`}
         >
           <Sliders className="w-4 h-4" />
-          <span>Políticas Kiosk &amp; Seguridad</span>
+          <span>Políticas Kiosk &amp; Google AMAPI</span>
         </button>
 
         <button
@@ -413,7 +411,7 @@ export default function EquiposManagementPage() {
           }`}
         >
           <QrCode className="w-4 h-4" />
-          <span>Código QR DPC Real</span>
+          <span>Código QR Google AMAPI Oficial</span>
         </button>
       </div>
 
@@ -444,7 +442,7 @@ export default function EquiposManagementPage() {
                 <Smartphone className="w-12 h-12 text-slate-600 mx-auto" />
                 <h4 className="text-sm font-bold text-white">No hay teléfonos registrados en la plataforma</h4>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  Instale la APK en su teléfono Android y presione <strong>Conectar Servidor</strong> para verlo aparecer aquí en vivo.
+                  Escanee el Código QR oficial de Google AMAPI al encender su teléfono para que Android lo configure automáticamente como Device Owner.
                 </p>
               </div>
             ) : (
@@ -551,14 +549,18 @@ export default function EquiposManagementPage() {
         </div>
       )}
 
-      {/* Pestaña Código QR DPC Real */}
+      {/* Pestaña Código QR Google AMAPI Oficial */}
       {activeTab === 'qr' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="p-8 rounded-3xl bg-[#0D1B2E] border border-white/10 space-y-6 text-center shadow-xl">
             <div>
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold mb-3">
+                <ShieldCheck className="w-4 h-4" />
+                <span>GOOGLE CLOUD AMAPI VERIFICADO</span>
+              </div>
               <h2 className="text-xl font-bold text-white flex items-center justify-center space-x-2">
                 <QrCode className="w-6 h-6 text-[#2DD4BF]" />
-                <span>Código QR Aprovisionamiento Device Owner</span>
+                <span>Código QR Oficial Google Android Enterprise</span>
               </h2>
               <p className="text-xs text-slate-400 mt-1">
                 Escanee este código QR al encender cualquier teléfono Android nuevo o formateado tras tocar 6 veces la pantalla de bienvenida.
@@ -567,7 +569,7 @@ export default function EquiposManagementPage() {
 
             {qrDataUrl ? (
               <div className="p-6 bg-white rounded-3xl w-72 h-72 mx-auto flex flex-col items-center justify-center border-4 border-[#2DD4BF] shadow-[0_0_35px_rgba(45,212,191,0.35)]">
-                <img src={qrDataUrl} alt="Código QR Android Enterprise DPC" className="w-60 h-60 object-contain" />
+                <img src={qrDataUrl} alt="Código QR Oficial Google CloudDPC AMAPI" className="w-60 h-60 object-contain" />
               </div>
             ) : (
               <div className="w-64 h-64 mx-auto bg-white/5 rounded-3xl flex items-center justify-center">
@@ -578,11 +580,11 @@ export default function EquiposManagementPage() {
             <div className="pt-2 flex justify-center">
               <a 
                 href={qrDataUrl} 
-                download="Centryx-MDM-DeviceOwner-QR.png"
+                download="Centryx-Google-AMAPI-QR.png"
                 className="px-6 py-2.5 bg-[#101D42] border border-[#2DD4BF]/40 text-[#2DD4BF] font-bold rounded-xl text-xs hover:bg-[#2DD4BF] hover:text-slate-950 transition-all flex items-center space-x-2"
               >
                 <Download className="w-4 h-4" />
-                <span>Descargar Código QR PNG</span>
+                <span>Descargar Código QR PNG Oficial</span>
               </a>
             </div>
           </div>
@@ -590,64 +592,57 @@ export default function EquiposManagementPage() {
           <div className="p-8 rounded-3xl bg-[#0D1B2E] border border-white/10 space-y-6 shadow-xl text-xs">
             <h3 className="text-sm font-bold text-white uppercase tracking-wider border-b border-white/10 pb-3 flex items-center space-x-2">
               <ShieldAlert className="w-4 h-4 text-[#2DD4BF]" />
-              <span>Verificación de Datos de Aprovisionamiento DPC</span>
+              <span>Detalles del Token de Aprovisionamiento Google AMAPI</span>
             </h3>
 
             <div className="space-y-4">
               <div>
-                <label className="text-slate-400 font-semibold block mb-1">URL Pública de Descarga APK:</label>
+                <label className="text-slate-400 font-semibold block mb-1">Entidad Empresarial Registrada en Google:</label>
+                <input 
+                  type="text" 
+                  readOnly 
+                  value={AMAPI_ENTERPRISE_ID}
+                  className="w-full p-2.5 bg-[#050A14] border border-white/10 rounded-xl text-emerald-400 font-mono text-xs font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 font-semibold block mb-1">Google AMAPI Enrollment Token:</label>
                 <div className="flex items-center space-x-2">
                   <input 
                     type="text" 
                     readOnly 
-                    value={PUBLIC_APK_DOWNLOAD_URL}
-                    className="w-full p-2.5 bg-[#050A14] border border-white/10 rounded-xl text-white font-mono text-[11px]"
+                    value={AMAPI_ENROLLMENT_TOKEN}
+                    className="w-full p-2.5 bg-[#050A14] border border-white/10 rounded-xl text-[#2DD4BF] font-mono text-xs font-bold"
                   />
                   <button 
-                    onClick={copyDownloadUrl}
+                    onClick={copyEnrollmentToken}
                     className="p-2.5 bg-[#101D42] border border-[#2DD4BF]/30 text-[#2DD4BF] rounded-xl hover:bg-[#2DD4BF] hover:text-slate-950 transition-all"
-                    title="Copiar URL"
+                    title="Copiar Token"
                   >
-                    {copiedUrl ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {copiedToken ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   </button>
-                  <a 
-                    href={PUBLIC_APK_DOWNLOAD_URL} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="p-2.5 bg-white/5 border border-white/10 text-slate-300 rounded-xl hover:bg-white/10 transition-all"
-                    title="Probar Descarga"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
                 </div>
               </div>
 
               <div>
-                <label className="text-slate-400 font-semibold block mb-1">Checksum SHA-256 (Base64Url para QR):</label>
+                <label className="text-slate-400 font-semibold block mb-1">Google Cloud DPC Downloader Location:</label>
                 <input 
                   type="text" 
                   readOnly 
-                  value={APK_SHA256_BASE64URL}
-                  className="w-full p-2.5 bg-[#050A14] border border-white/10 rounded-xl text-[#2DD4BF] font-mono text-[11px]"
-                />
-              </div>
-
-              <div>
-                <label className="text-slate-400 font-semibold block mb-1">Checksum SHA-256 (HEX):</label>
-                <input 
-                  type="text" 
-                  readOnly 
-                  value={APK_SHA256_HEX}
+                  value="https://play.google.com/managed/downloadManagingApp?identifier=setup"
                   className="w-full p-2.5 bg-[#050A14] border border-white/10 rounded-xl text-slate-300 font-mono text-[10px]"
                 />
               </div>
 
-              <div>
-                <label className="text-slate-400 font-semibold block mb-1">Vínculo de Empresa &amp; Sucursal:</label>
-                <div className="p-3 bg-[#050A14] border border-white/10 rounded-xl font-mono text-[10px] space-y-1 text-slate-300">
-                  <div>COMPANY_ID: {DEFAULT_COMPANY_ID}</div>
-                  <div>BRANCH_ID: {DEFAULT_BRANCH_ID}</div>
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 space-y-1.5">
+                <div className="font-bold flex items-center space-x-1.5">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Aprovisionamiento Directo desde Servidores de Google</span>
                 </div>
+                <p className="text-[11px] text-emerald-300/80 leading-relaxed">
+                  Android descargará la aplicación oficial <strong>Android Device Policy</strong> directamente desde los servidores globales de Google Play Services sin fallos de checksum ni testOnly.
+                </p>
               </div>
             </div>
           </div>

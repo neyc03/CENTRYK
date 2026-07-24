@@ -25,6 +25,12 @@ app/build/
 .env.development.local
 .env.test.local
 .env.production.local
+service-account*.json
+centryx-production-*.json
+apps/backend/*.json
+!apps/backend/package.json
+!apps/backend/tsconfig.json
+!apps/backend/nest-cli.json
 
 # IDEs and Editors
 .idea/
