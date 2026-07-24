@@ -50,7 +50,7 @@ const DEFAULT_COMPANY_ID = "3ad63dff-7d45-4b07-83a0-152c04634510";
 
 // Datos de Google Android Management API (AMAPI Unlimited Enterprise)
 const AMAPI_ENTERPRISE_ID = "enterprises/LC03x661ny";
-const AMAPI_ENROLLMENT_TOKEN = "QYNIDJJXZTFBNRMUPVIS";
+const AMAPI_ENROLLMENT_TOKEN = "GJMIPIOUMYRGWBLXLCIF";
 
 // Payload QR Oficial generado directamente por la API REST de Google Cloud AMAPI
 const OFFICIAL_GOOGLE_AMAPI_PAYLOAD = {
