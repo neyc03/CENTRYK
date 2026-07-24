@@ -48,7 +48,7 @@ const DEFAULT_BRANCH_ID = "beb32800-bba4-4b0f-84ab-47ecc150a5c7";
 const DEFAULT_COMPANY_ID = "3ad63dff-7d45-4b07-83a0-152c04634510";
 
 // Datos de aprovisionamiento calculados exactamente
-const PUBLIC_APK_DOWNLOAD_URL = "https://centryk-frontend.vercel.app/apk/centryx-dpc-v2.apk";
+const PUBLIC_APK_DOWNLOAD_URL = "https://centryk.vercel.app/apk/centryx-dpc-v2.apk";
 const APK_SHA256_BASE64URL = "O7-Ag5Ajmf4l4EdAWVlLTp0x59yvqWLykniFZoHXvuc=";
 const APK_SHA256_HEX = "3BBF8083902399FE25E0474059594B4E9D31E7DCAFA962F29278856681D7BEE7";
 
