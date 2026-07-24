@@ -5,10 +5,10 @@ const QRCode = require('qrcode');
 
 async function generateAMAPIEnrollmentQR() {
   const saPath = path.join(__dirname, '..', 'centryx-production-9aed930481af.json');
-  const enterpriseId = 'enterprises/LC00lhcqu0';
+  const enterpriseId = 'enterprises/LC03x661ny';
 
   try {
-    console.log(`\n📌 [ENTERPRISE ID]: ${enterpriseId}`);
+    console.log(`\n📌 [ENTERPRISE ID DEFINITIVO UNLIMITED]: ${enterpriseId}`);
     console.log('🔐 [AUTENTICANDO CON GOOGLE ANDROID MANAGEMENT API]...');
 
     const auth = new google.auth.GoogleAuth({
@@ -21,9 +21,9 @@ async function generateAMAPIEnrollmentQR() {
       auth: auth
     });
 
-    // 1. Crear una Politica por Defecto en Google AMAPI
-    const policyId = `${enterpriseId}/policies/centryx-default-policy`;
-    console.log(`📋 [CREANDO/ACTUALIZANDO POLÍTICA EN GOOGLE AMAPI]: ${policyId}...`);
+    // 1. Crear una Politica Corporativa por Defecto en el Enterprise Definitivo
+    const policyId = `${enterpriseId}/policies/centryx-unlimited-policy`;
+    console.log(`📋 [CREANDO/ACTUALIZANDO POLÍTICA UNLIMITED EN GOOGLE AMAPI]: ${policyId}...`);
 
     await amapi.enterprises.policies.patch({
       name: policyId,
@@ -46,10 +46,10 @@ async function generateAMAPIEnrollmentQR() {
       }
     });
 
-    console.log('✅ [POLÍTICA CONFIGURADA EXITOSAMENTE EN GOOGLE CLOUD]');
+    console.log('✅ [POLÍTICA CONFIGURADA EXITOSAMENTE EN LA ENTIDAD ENTERPRISE DEFINITIVA]');
 
-    // 2. Generar Enrollment Token Oficial en Google AMAPI
-    console.log('🎟️ [GENERANDO ENROLLMENT TOKEN OFICIAL EN GOOGLE]...');
+    // 2. Generar Enrollment Token Oficial en Google AMAPI sin Limite de Dispositivos
+    console.log('🎟️ [GENERANDO ENROLLMENT TOKEN UNLIMITED EN GOOGLE]...');
     const tokenRes = await amapi.enterprises.enrollmentTokens.create({
       parent: enterpriseId,
       requestBody: {
@@ -63,15 +63,15 @@ async function generateAMAPIEnrollmentQR() {
     const qrCodeValue = tokenRes.data.qrCode;
 
     console.log('\n======================================================');
-    console.log('🎉 TOKEN DE APROVISIONAMIENTO OFICIAL DE GOOGLE GENERADO');
+    console.log('🎉 TOKEN DE APROVISIONAMIENTO DEFINITIVO UNLIMITED GENERADO');
     console.log('======================================================');
+    console.log('ENTERPRISE ID:', enterpriseId);
     console.log('TOKEN VALUE:', enrollmentToken);
     console.log('EXPIRATION:', tokenRes.data.expirationTimestamp);
-    console.log('\nPAYLOAD QR OFICIAL AMAPI GENERADO POR GOOGLE:');
+    console.log('\nPAYLOAD QR OFICIAL AMAPI UNLIMITED DE GOOGLE:');
     console.log(qrCodeValue);
     console.log('======================================================\n');
 
-    // Guardar el payload QR oficial en el backend y en la app frontend
     const payloadObj = {
       enterpriseId,
       policyId,
