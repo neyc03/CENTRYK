@@ -4,13 +4,25 @@ import path from 'path';
 
 export async function GET() {
   try {
-    const filePath = path.join(process.cwd(), 'public', 'apk', 'centryx-dpc-v2.apk');
+    const candidates = [
+      path.join(process.cwd(), 'public', 'apk', 'centryx-dpc-v2.apk'),
+      path.join(process.cwd(), 'apps', 'frontend', 'public', 'apk', 'centryx-dpc-v2.apk'),
+      path.join(__dirname, '..', '..', '..', '..', 'public', 'apk', 'centryx-dpc-v2.apk')
+    ];
 
-    if (!fs.existsSync(filePath)) {
+    let foundPath: string | null = null;
+    for (const p of candidates) {
+      if (fs.existsSync(p)) {
+        foundPath = p;
+        break;
+      }
+    }
+
+    if (!foundPath) {
       return new NextResponse('Archivo APK no encontrado en el servidor', { status: 404 });
     }
 
-    const fileBuffer = fs.readFileSync(filePath);
+    const fileBuffer = fs.readFileSync(foundPath);
 
     return new NextResponse(fileBuffer, {
       status: 200,
